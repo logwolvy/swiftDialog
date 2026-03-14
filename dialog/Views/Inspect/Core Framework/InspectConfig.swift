@@ -128,6 +128,7 @@ struct InspectConfig: Codable {
     let triggerFile: String?                // Custom trigger file path (overrides dev/prod defaults)
     let skipPortal: Bool?                   // Skip portal phase entirely (Preset5) - go directly from intro to outro
     let debugMode: Bool?                    // Debug/testing mode - ignore completion flags, always start from step 1 (preserves form values)
+    let dateStyle: String?                  // Date display format: "relative" | "short" | "medium" | "long" | "iso8601" (default: "medium")
 
     // MARK: - IPC (ignitecli Integration)
     let readinessFile: String?              // Path to write readiness signal JSON (default: "{triggerFile}.ready")
@@ -1055,6 +1056,7 @@ struct InspectConfig: Codable {
         let categoryPrefix: [String: String]? // Map prefixes to category names
         let categoryIcons: [String: String]? // Map category names to icon strings (e.g., "OS Security": "sf=shield.fill,colour1=#007AFF")
         let maxCheckDetails: Int?           // Max check items to display per category (default: 15)
+        let timestampKey: String?           // Key for last-check timestamp (default: tries "lastComplianceCheck", "LastUpdateCheck", "lastCheck", "timestamp")
 
         // MARK: - Auto-Discovery Options
         let autoDiscover: Bool?             // If true, auto-generate items from plist keys

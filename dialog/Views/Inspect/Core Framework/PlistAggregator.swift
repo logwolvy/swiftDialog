@@ -72,9 +72,22 @@ class PlistAggregator {
                 }
 
                 var items: [ComplianceItem] = []
-                let lastCheck = plistContents["lastComplianceCheck"] as? String ??
-                               plistContents["LastUpdateCheck"] as? String ??
-                               getCurrentTimestamp()
+                // Parse and format last check timestamp using DateDisplayService
+                // Use configured timestampKey, or try common fallback keys
+                let lastCheckValue: Any? = {
+                    if let configuredKey = source.timestampKey {
+                        return plistContents[configuredKey]
+                    }
+                    // Fallback: try common timestamp key names
+                    let fallbackKeys = ["lastComplianceCheck", "LastUpdateCheck", "lastCheck", "timestamp", "lastModified", "updatedAt"]
+                    for key in fallbackKeys {
+                        if let value = plistContents[key] {
+                            return value
+                        }
+                    }
+                    return nil
+                }()
+                let lastCheck = DateDisplayService.shared.parseAndFormat(lastCheckValue, fallback: getCurrentTimestamp())
 
                 // Process items with memory-conscious approach
                 let maxItems = 1000 // Prevent processing too many items

@@ -1484,10 +1484,8 @@ class Validation: ObservableObject {
         } else if let nsNumber = value as? NSNumber {
             return nsNumber.stringValue
         } else if let dateValue = value as? Date {
-            // Format dates with ISO8601 including timezone for reliable parsing
-            let iso8601Formatter = ISO8601DateFormatter()
-            iso8601Formatter.formatOptions = [.withInternetDateTime]
-            return iso8601Formatter.string(from: dateValue)
+            // Format dates using DateDisplayService for user-friendly display
+            return DateDisplayService.shared.format(dateValue)
         }
 
         // Safe fallback for any other types
