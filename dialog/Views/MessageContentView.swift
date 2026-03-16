@@ -100,21 +100,36 @@ struct MessageContent: View {
                             }
                         } else {
                             ScrollView {
-                                
+
                                 StructuredText(observedData.args.messageOption.value,
                                                parser: ColoredMarkdownParser())
                                     .frame(width: messageGeometry.size.width, alignment: observedData.appProperties.messagePosition)
                                     .multilineTextAlignment(observedData.appProperties.messageAlignment)
                                     .lineSpacing(2)
                                     .fixedSize()
-                                    .background(GeometryReader {child -> Color in
+                                    .background(GeometryReader { child -> Color in
                                         DispatchQueue.main.async {
-                                            // update on next cycle with calculated height
                                             self.messageHeight = child.size.height > defaultMessageHeight ? child.size.height : defaultMessageHeight
                                         }
                                         return Color.clear
                                     })
-                                    .textual.structuredTextStyle(.gitHub)
+                                    // Instead of .textual.structuredTextStyle(.gitHub), set each piece individually:
+                                    .textual.inlineStyle(
+                                        InlineStyle()
+                                            .code(.monospaced, .fontScale(0.85))  // same as .gitHub but NO .backgroundColor
+                                            .strong(.fontWeight(.semibold))
+                                            //.link(.foregroundColor(.gitHubLink))
+                                    )
+                                    .textual.headingStyle(.gitHub)
+                                    .textual.paragraphStyle(.gitHub)
+                                    .textual.blockQuoteStyle(.gitHub)
+                                    .textual.codeBlockStyle(.gitHub)
+                                    .textual.listItemStyle(.default)
+                                    .textual.unorderedListMarker(.hierarchical(.disc, .circle, .square))
+                                    .textual.orderedListMarker(.decimal)
+                                    .textual.tableStyle(.gitHub)
+                                    .textual.tableCellStyle(.gitHub)
+                                    .textual.thematicBreakStyle(.gitHub)
                                     .textual.textSelection(.enabled)
                                     .font(
                                         appvars.messageFontName.isEmpty ?
