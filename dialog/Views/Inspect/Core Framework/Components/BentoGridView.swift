@@ -1142,13 +1142,17 @@ struct BentoGridView: View {
                     }
                 }
 
+            }
+            .frame(width: availableWidth, height: gridHeight, alignment: .topLeading)
+            .overlay {
                 // Inline detail overlay (when inlineExpansion is true)
+                // Rendered as overlay so it doesn't affect grid frame height
                 if inlineExpansion, let expandedId = expandedCellId,
                    let cellConfig = cells.first(where: { $0.id == expandedId }),
-                   let overlay = cellConfig.detailOverlay {
+                   let detailConfig = cellConfig.detailOverlay {
                     BentoInlineDetailView(
                         cellConfig: cellConfig,
-                        overlay: overlay,
+                        overlay: detailConfig,
                         gridSize: detailSize,
                         accentColor: accentColor,
                         iconBasePath: iconBasePath,
@@ -1160,15 +1164,10 @@ struct BentoGridView: View {
                         }
                     )
                     .transition(.scale(scale: 0.8).combined(with: .opacity))
-                    .zIndex(100)
                 }
             }
-            .frame(width: availableWidth, height: expandedCellId != nil ? detailHeight : gridHeight, alignment: .topLeading)
         }
-        .frame(height: expandedCellId != nil
-            ? (containerHeight ?? max(BentoLayoutEngine.calculateGridHeight(cells: cells, rowHeight: rowHeight * scaleFactor, gap: gap * scaleFactor), 480))
-            : BentoLayoutEngine.calculateGridHeight(cells: cells, rowHeight: rowHeight * scaleFactor, gap: gap * scaleFactor)
-        )
+        .frame(height: BentoLayoutEngine.calculateGridHeight(cells: cells, rowHeight: rowHeight * scaleFactor, gap: gap * scaleFactor))
         .onAppear {
             staggerCellAppearance()
         }
