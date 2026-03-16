@@ -359,9 +359,12 @@ class IntroStepMonitorService: ObservableObject {
             }
         }
 
-        // Convert to string
+        // Convert to string with proper date formatting
         if let stringValue = current as? String {
             return stringValue
+        } else if let dateValue = current as? Date {
+            // Format dates using DateDisplayService for consistent, user-friendly display
+            return DateDisplayService.shared.format(dateValue)
         } else if let intValue = current as? Int {
             return String(intValue)
         } else if let doubleValue = current as? Double {

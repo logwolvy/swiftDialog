@@ -119,6 +119,9 @@ struct Preset5View: View {
     @State private var isRefetching: Bool = false
     @State private var mdmOverrides: MDMBrandingOverrides?
 
+    // Media step text buildup animation
+    @State private var mediaTextVisible: Bool = false
+
     // Computed config references
     private var config: InspectConfig? { inspectState.config }
     private var portalConfig: InspectConfig.PortalConfig? { config?.portalConfig }
@@ -689,6 +692,7 @@ struct Preset5View: View {
         }
 
         if currentStepIndex + 1 < allSteps.count {
+            mediaTextVisible = false
             currentStepIndex += 1
             writeStepEvent("step_started", stepId: allSteps[currentStepIndex].id)
             writeLog("Preset5: Advanced to step \(currentStepIndex)", logLevel: .info)
@@ -702,6 +706,7 @@ struct Preset5View: View {
     /// Go to the previous step in the linear sequence
     private func goToPreviousStep() {
         if currentStepIndex > 0 {
+            mediaTextVisible = false
             currentStepIndex -= 1
             writeLog("Preset5: Moved back to step \(currentStepIndex)", logLevel: .info)
         }
@@ -1006,6 +1011,9 @@ struct Preset5View: View {
         case "bento":
             // Bento step - BentoCraft-inspired grid layout (grid or split mode)
             bentoStepView(step: step, stepIndex: currentStepIndex)
+        case "media":
+            // Media step - side-by-side text + media (image/GIF/video) split
+            mediaStepView(step: step, stepIndex: currentStepIndex)
         case "outro":
             // Outro step - same view as intro, just semantic distinction
             introStepView(step: step, stepIndex: currentStepIndex)
@@ -4834,11 +4842,13 @@ struct Preset5View: View {
                                                 basePath: effectiveIconBasePath,
                                                 maxWidth: geometry.size.width,
                                                 maxHeight: imageHeight,
-                                                imageFit: .fit,
+                                                imageFit: .fill,
                                                 fallback: { Color.clear }
                                             )
                                         }
-                                        .frame(width: geometry.size.width, height: imageHeight)
+                                        .frame(width: geometry.size.width - 32, height: imageHeight)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .padding(.horizontal, 16)
                                     }
                                 }
 
@@ -4918,6 +4928,34 @@ struct Preset5View: View {
                                     }
                                 }
 
+                                // Wallpaper picker (categorized horizontal-scroll with multi-monitor support)
+                                if let categories = step.wallpaperCategories, !categories.isEmpty {
+                                    let layoutMode: WallpaperPickerView.WallpaperLayout = {
+                                        switch step.wallpaperLayout?.lowercased() {
+                                        case "row": return .row
+                                        case "categories": return .categories
+                                        default: return .grid
+                                        }
+                                    }()
+
+                                    WallpaperPickerView(
+                                        categories: categories,
+                                        columns: 4,
+                                        imageFit: "fill",
+                                        thumbnailHeight: step.wallpaperThumbnailHeight ?? 120,
+                                        selectionKey: step.wallpaperSelectionKey ?? step.id,
+                                        showPath: step.wallpaperShowPath ?? false,
+                                        confirmButtonText: step.wallpaperConfirmButton,
+                                        multiSelectCount: step.wallpaperMultiSelect ?? 1,
+                                        scaleFactor: 1.0,
+                                        centered: true,
+                                        layout: layoutMode,
+                                        inspectState: inspectState,
+                                        itemId: step.id
+                                    )
+                                    .padding(.horizontal, sp.contentPadH)
+                                }
+
                                 Spacer(minLength: 0)
                             }
                             .frame(maxWidth: .infinity, minHeight: contentGeo.size.height)
@@ -4977,6 +5015,200 @@ struct Preset5View: View {
                 stopInstallationMonitoring()
             }
         }
+    }
+
+    // MARK: - Media Step View (side-by-side text + media split)
+
+    /// Side-by-side layout: text content on one side, media (image/GIF/video) on the other.
+    /// Configurable via `mediaSide` ("left"/"right") and `mediaRatio` (0.2-0.8).
+    @ViewBuilder
+    private func mediaStepView(step: InspectConfig.IntroStep, stepIndex: Int) -> some View {
+        let canGoBackFromStep = canGoBack(fromStepIndex: stepIndex)
+        let continueText = localized("continueButtonText", forStep: step, fallback: nil) ?? step.continueButtonText ?? "Continue"
+        let mediaOnLeft = (step.mediaSide ?? "right").lowercased() == "left"
+        let ratio = min(0.8, max(0.2, step.mediaRatio ?? 0.5))
+
+        GeometryReader { geometry in
+            let sp = InspectSizes.SetupSpacing.self
+            let footerH: CGFloat = 56
+            let contentH = geometry.size.height - footerH
+            let mediaWidth = geometry.size.width * ratio
+            let textWidth = geometry.size.width * (1.0 - ratio)
+
+            VStack(spacing: 0) {
+                // Main content area: side-by-side split (fixed height)
+                HStack(spacing: 0) {
+                    if mediaOnLeft {
+                        mediaPanelContent(step: step, width: mediaWidth, height: contentH)
+                            .clipped()
+                        mediaTextContent(step: step, width: textWidth, sp: sp)
+                            .clipped()
+                    } else {
+                        mediaTextContent(step: step, width: textWidth, sp: sp)
+                            .clipped()
+                        mediaPanelContent(step: step, width: mediaWidth, height: contentH)
+                            .clipped()
+                    }
+                }
+                .frame(height: contentH)
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        withAnimation(.easeOut(duration: 0.4)) {
+                            mediaTextVisible = true
+                        }
+                    }
+                }
+
+                // Footer — always visible at bottom
+                IntroFooterView(
+                    continueButtonText: continueText,
+                    accentColor: palette.accent,
+                    showBackButton: (step.showBackButton ?? true) && canGoBackFromStep,
+                    onBack: canGoBackFromStep ? { goToPreviousStep() } : nil,
+                    onContinue: { goToNextStep() },
+                    footerLink: step.footerLink,
+                    skipButtonText: step.skipButtonText,
+                    onSkip: step.skipButtonText != nil ? { goToNextStep() } : nil,
+                    inspectConfig: config,
+                    buttonControlSize: setupButtonControlSize,
+                    footerVerticalPadding: setupFooterPadding,
+                )
+                .frame(height: footerH)
+            }
+            .background(Color(NSColor.windowBackgroundColor))
+        }
+    }
+
+    /// The media panel — image/GIF/video fills a rounded rectangle edge-to-edge
+    @ViewBuilder
+    private func mediaPanelContent(step: InspectConfig.IntroStep, width: CGFloat, height: CGFloat) -> some View {
+        let mediaPath = step.heroImage ?? step.mediaItems?.first?.url
+        let cornerRadius: CGFloat = 16
+        let inset: CGFloat = 20
+        let useFit = (step.mediaFit ?? "fill").lowercased() == "fit"
+
+        // The actual media area after inset
+        let mediaW = width - inset * 2
+        let mediaH = height - inset * 2
+
+        VStack {
+            Spacer(minLength: 0)
+            if let path = mediaPath {
+                let url: URL = path.hasPrefix("http") ? URL(string: path)! : URL(fileURLWithPath: path)
+                let mediaType = IntroMediaType.detect(from: url)
+
+                switch mediaType {
+                case .staticImage:
+                    AsyncImageView(
+                        iconPath: path,
+                        basePath: iconBasePathOverride ?? inspectState.uiConfiguration.iconBasePath,
+                        maxWidth: mediaW,
+                        maxHeight: mediaH,
+                        imageFit: useFit ? .fit : .fill,
+                        fallback: { Color.secondary.opacity(0.1) }
+                    )
+                    .frame(width: mediaW, height: mediaH)
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+
+                case .animatedImage:
+                    // GIF/animated: use IntroAnimatedImageView directly with explicit bounds
+                    IntroAnimatedImageView(url: url, maxWidth: mediaW, maxHeight: mediaH)
+                        .frame(width: mediaW, height: mediaH)
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+                        .clipped()
+
+                case .video:
+                    IntroNativeVideoPlayer(url: url, autoplay: step.mediaAutoplay ?? true)
+                        .frame(width: mediaW, height: mediaH)
+                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+
+                case .embedVideo:
+                    IntroMediaPlayer(
+                        url: url,
+                        autoplay: step.mediaAutoplay ?? true,
+                        height: mediaH,
+                        cornerRadius: cornerRadius
+                    )
+                    .frame(width: mediaW, height: mediaH)
+                    .clipped()
+
+                default:
+                    mediaPlaceholder
+                        .frame(width: mediaW, height: mediaH)
+                }
+            } else {
+                mediaPlaceholder
+                    .frame(width: mediaW, height: mediaH)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(inset)
+        .frame(width: width)
+    }
+
+    /// The text side — title, subtitle, and scrollable content with vertical centering
+    @ViewBuilder
+    private func mediaTextContent(step: InspectConfig.IntroStep, width: CGFloat, sp: InspectSizes.SetupSpacing.Type) -> some View {
+        GeometryReader { geo in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Spacer(minLength: 48)
+
+                    // Title + Subtitle
+                    VStack(alignment: .leading, spacing: 6) {
+                        if let title = localized("title", forStep: step, fallback: step.title) {
+                            Text(title)
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundStyle(.primary)
+                        }
+
+                        if let subtitle = localized("subtitle", forStep: step, fallback: step.subtitle) {
+                            Text(subtitle)
+                                .font(.system(size: 14))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.bottom, 20)
+                    .opacity(mediaTextVisible ? 1 : 0)
+                    .offset(y: mediaTextVisible ? 0 : 8)
+                    .animation(.easeOut(duration: 0.4), value: mediaTextVisible)
+
+                    // Content blocks
+                    if let content = step.content, !content.isEmpty {
+                        VStack(alignment: .leading, spacing: sp.blockGap) {
+                            ForEach(content.indices, id: \.self) { index in
+                                let block = localizedContentBlock(content[index], stepId: step.id, blockIndex: index)
+                                introContentBlock(block, blockIndex: index)
+                            }
+                        }
+                        .opacity(mediaTextVisible ? 1 : 0)
+                        .offset(y: mediaTextVisible ? 0 : 8)
+                        .animation(.easeOut(duration: 0.4).delay(0.2), value: mediaTextVisible)
+                    }
+
+                    Spacer(minLength: 32)
+                }
+                .padding(.leading, 40)
+                .padding(.trailing, 28)
+                .frame(maxWidth: .infinity, minHeight: geo.size.height, alignment: .leading)
+            }
+        }
+        .frame(width: width)
+    }
+
+    /// Placeholder for missing or unsupported media
+    private var mediaPlaceholder: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "photo.on.rectangle.angled")
+                .font(.system(size: 40))
+                .foregroundStyle(.secondary)
+            Text("No media configured")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.secondary.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     // MARK: - Assistant Item Row (status-badge style backed by filesystem monitoring)

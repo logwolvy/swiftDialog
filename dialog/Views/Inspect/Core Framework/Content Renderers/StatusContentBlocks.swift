@@ -581,9 +581,7 @@ struct ComplianceAllDetailsSheet: View {
 
     private var lastCheckFormatted: String {
         guard let date = complianceService.lastRefresh else { return "Never" }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        return formatter.string(from: date)
+        return DateDisplayService.shared.format(date)
     }
 
     var body: some View {

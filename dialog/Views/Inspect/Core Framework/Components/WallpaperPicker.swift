@@ -252,6 +252,9 @@ struct WallpaperPickerView: View {
                 .padding(.top, 8 * scaleFactor)
             }
         }
+        .onAppear {
+            ThumbnailService.shared.preloadThumbnails(for: allImages.map { $0.thumbnail ?? $0.path })
+        }
         .onDisappear {
             // Auto-commit any pending selections when the step transitions away
             if !isConfirmed && !pendingSelections.isEmpty {
@@ -318,6 +321,8 @@ struct WallpaperTileView: View {
     let accentColor: Color
     let onTap: () -> Void
 
+    @ObservedObject private var thumbnailService = ThumbnailService.shared
+
     private var imagePath: String {
         image.thumbnail ?? image.path
     }
@@ -382,12 +387,23 @@ struct WallpaperTileView: View {
 
     @ViewBuilder
     private var imageContent: some View {
-        if let nsImage = NSImage(contentsOfFile: imagePath) {
+        if let nsImage = thumbnailService.thumbnail(for: imagePath) {
             Image(nsImage: nsImage)
                 .resizable()
                 .aspectRatio(contentMode: .fill)  // Always fill to ensure consistent sizing
                 .frame(width: tileWidth, height: tileHeight)
                 .clipped()
+        } else if FileManager.default.fileExists(atPath: imagePath) {
+            // Placeholder while thumbnail is loading
+            Rectangle()
+                .fill(Color.gray.opacity(0.1))
+                .overlay(
+                    ProgressView()
+                        .scaleEffect(0.6)
+                )
+                .task {
+                    await thumbnailService.loadThumbnail(for: imagePath)
+                }
         } else {
             // Placeholder for missing image
             Rectangle()

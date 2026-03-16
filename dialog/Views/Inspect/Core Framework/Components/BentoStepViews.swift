@@ -90,7 +90,8 @@ struct BentoGridStepLayout: View {
                         iconBasePath: iconBasePath,
                         tintColor: config.tintColor,
                         inspectState: inspectState,
-                        inlineExpansion: true
+                        inlineExpansion: true,
+                        containerHeight: geometry.size.height
                     )
                     .padding(.horizontal, 24)
 
@@ -142,7 +143,8 @@ struct BentoSplitStepLayout: View {
                             iconBasePath: iconBasePath,
                             tintColor: config.tintColor,
                             inspectState: inspectState,
-                            inlineExpansion: true
+                            inlineExpansion: true,
+                            containerHeight: geometry.size.height
                         )
                         .padding(24)
 

@@ -53,7 +53,10 @@ struct IntroHeroImage: View {
 
     var body: some View {
         Group {
-            if path.hasPrefix("SF=") {
+            if path.lowercased() == "computer" {
+                // Device-specific hardware icon (MacBook, iMac, etc.)
+                deviceIconView
+            } else if path.hasPrefix("SF=") {
                 // SF Symbol
                 let symbolName = String(path.dropFirst(3))
                 sfSymbolView(symbolName: symbolName)
@@ -65,6 +68,15 @@ struct IntroHeroImage: View {
         .frame(width: size, height: size)
         .modifier(ConditionalClipShape(shape: shape, size: size))
         .shadow(color: .black.opacity(0.1), radius: 10, y: 5)
+    }
+
+    @ViewBuilder
+    private var deviceIconView: some View {
+        let contentSize = size - 2 * effectivePadding
+        Image(nsImage: NSImage(named: NSImage.computerName) ?? NSImage())
+            .resizable()
+            .aspectRatio(contentMode: .fit)
+            .frame(width: max(contentSize, 10), height: max(contentSize, 10))
     }
 
     @ViewBuilder
@@ -1113,7 +1125,14 @@ struct IntroAnimatedImageView: NSViewRepresentable {
     func makeNSView(context: Context) -> NSImageView {
         let imageView = NSImageView()
         imageView.imageScaling = .scaleProportionallyUpOrDown
+        imageView.imageAlignment = .alignCenter
         imageView.animates = true  // Enable GIF animation
+
+        // Let SwiftUI control the frame — don't fight the layout system
+        imageView.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        imageView.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+        imageView.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        imageView.setContentHuggingPriority(.defaultLow, for: .vertical)
 
         if let url = url {
             // Load image asynchronously

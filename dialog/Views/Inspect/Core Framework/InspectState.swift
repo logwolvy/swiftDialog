@@ -240,6 +240,9 @@ class InspectState: ObservableObject, FileMonitorDelegate, @unchecked Sendable {
                 // Set core configuration
                 self.config = loadedConfig
 
+                // Configure date display service with style from config
+                DateDisplayService.shared.configure(style: loadedConfig.dateStyle)
+
                 // PRIORITY: Set UI configuration FIRST before items
                 // This ensures button text, title, etc. are ready before view transitions from loading
                 print("InspectState: About to extract configurations")

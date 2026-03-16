@@ -153,19 +153,32 @@ struct SidebarNavigationModule: View {
         VStack(spacing: 8 * scaleFactor) {
             // Prominent icon — static (config-level) or dynamic (current step's icon)
             if let icon = resolvedHeaderIcon {
-                AsyncImageView(
-                    iconPath: icon,
-                    basePath: iconBasePath,
-                    maxWidth: 64 * scaleFactor,
-                    maxHeight: 64 * scaleFactor,
-                    imageFit: .fit
-                ) {
-                    EmptyView()
+                if icon.hasPrefix("SF=") {
+                    // Native SF Symbol rendering — no async loading needed
+                    let symbolName = String(icon.dropFirst(3)).components(separatedBy: ",").first ?? ""
+                    Image(systemName: symbolName)
+                        .font(.system(size: 32 * scaleFactor, weight: .medium))
+                        .foregroundStyle(accentColor)
+                        .frame(width: 64 * scaleFactor, height: 64 * scaleFactor)
+                        .background(accentColor.opacity(0.1), in: RoundedRectangle(cornerRadius: 14 * scaleFactor, style: .continuous))
+                        .id(icon)
+                        .transition(.opacity)
+                        .animation(.easeInOut(duration: 0.25), value: icon)
+                } else {
+                    AsyncImageView(
+                        iconPath: icon,
+                        basePath: iconBasePath,
+                        maxWidth: 64 * scaleFactor,
+                        maxHeight: 64 * scaleFactor,
+                        imageFit: .fit
+                    ) {
+                        EmptyView()
+                    }
+                    .frame(width: 64 * scaleFactor, height: 64 * scaleFactor)
+                    .id(icon)
+                    .transition(.opacity)
+                    .animation(.easeInOut(duration: 0.25), value: icon)
                 }
-                .frame(width: 64 * scaleFactor, height: 64 * scaleFactor)
-                .id(icon) // crossfade when the icon changes between steps
-                .transition(.opacity)
-                .animation(.easeInOut(duration: 0.25), value: icon)
             }
 
             // Title
@@ -268,21 +281,11 @@ struct ModernStepRow: View {
             stepIndicator
                 .frame(width: 28 * scaleFactor, height: 28 * scaleFactor)
 
-            // Step content
-            VStack(alignment: .leading, spacing: 2 * scaleFactor) {
-                Text(item.displayName)
-                    .font(.subheadline.weight(isActive ? .semibold : .regular))
-                    .foregroundStyle(isActive ? .primary : .secondary)
-                    .lineLimit(1)
-
-                // Optional subtitle (status or description)
-                if let subtitle = stepSubtitle {
-                    Text(subtitle)
-                        .font(.caption2)
-                        .foregroundStyle(subtitleColor)
-                        .lineLimit(1)
-                }
-            }
+            // Step content — no subtitle to keep uniform row height
+            Text(item.displayName)
+                .font(.subheadline.weight(isActive ? .semibold : .regular))
+                .foregroundStyle(isActive ? .primary : (isCompleted ? .primary : .secondary))
+                .lineLimit(1)
 
             Spacer(minLength: 0)
         }
@@ -314,11 +317,13 @@ struct ModernStepRow: View {
                     .font(.caption.bold())
                     .foregroundStyle(.white)
             } else if isDownloading {
-                // Downloading/processing state - spinner
+                // Downloading/processing state - pulsing icon
                 Circle()
                     .fill(accentColor.opacity(0.15))
-                ProgressView()
-                    .scaleEffect(0.6 * scaleFactor)
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 10 * scaleFactor, weight: .bold))
+                    .foregroundStyle(accentColor)
+                    .symbolEffect(.pulse, options: .repeating)
             } else if isActive {
                 // Active state - filled circle with number
                 Circle()

@@ -15,6 +15,11 @@ struct OverrideDialogView: View {
     @Binding var isPresented: Bool
     let stepId: String
     let cancelButtonText: String
+    let titleText: String
+    let descriptionText: String
+    let successText: String
+    let failureText: String
+    let skipText: String
     let onAction: (OverrideAction) -> Void
 
     enum OverrideAction {
@@ -32,10 +37,10 @@ struct OverrideDialogView: View {
                     .font(.system(size: 48))
                     .foregroundStyle(.orange)
 
-                Text("Override Step")
+                Text(titleText)
                     .font(.system(size: 24, weight: .bold))
 
-                Text("This step has been waiting for an extended period. How would you like to proceed?")
+                Text(descriptionText)
                     .font(.system(size: 14))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -51,7 +56,7 @@ struct OverrideDialogView: View {
                 }) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
-                        Text("Mark as Success")
+                        Text(successText)
                         Spacer()
                     }
                     .frame(maxWidth: .infinity)
@@ -68,7 +73,7 @@ struct OverrideDialogView: View {
                 }) {
                     HStack {
                         Image(systemName: "xmark.circle.fill")
-                        Text("Mark as Failed")
+                        Text(failureText)
                         Spacer()
                     }
                     .frame(maxWidth: .infinity)
@@ -85,7 +90,7 @@ struct OverrideDialogView: View {
                 }) {
                     HStack {
                         Image(systemName: "forward.circle.fill")
-                        Text("Skip This Step")
+                        Text(skipText)
                         Spacer()
                     }
                     .frame(maxWidth: .infinity)

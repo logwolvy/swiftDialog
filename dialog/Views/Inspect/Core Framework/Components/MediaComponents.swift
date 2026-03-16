@@ -11,6 +11,29 @@
 
 import SwiftUI
 
+// MARK: - Shared Image Cache
+
+/// Thread-safe NSCache for decoded images, keyed by "path@WxH" so the same file
+/// at different display sizes gets its own appropriately-sized entry.
+private final class AsyncImageCache: @unchecked Sendable {
+    static let shared = AsyncImageCache()
+    private let cache = NSCache<NSString, NSImage>()
+
+    private init() {
+        cache.countLimit = 30          // keep up to 30 decoded images
+        cache.totalCostLimit = 200_000_000  // ~200 MB budget
+    }
+
+    func image(forKey key: String) -> NSImage? {
+        cache.object(forKey: key as NSString)
+    }
+
+    func setImage(_ image: NSImage, forKey key: String) {
+        let cost = Int(image.size.width * image.size.height * 4)
+        cache.setObject(image, forKey: key as NSString, cost: cost)
+    }
+}
+
 // MARK: - AsyncImageView (Shared Component)
 
 /// Asynchronous image loader with loading states and fallback support
@@ -21,6 +44,7 @@ struct AsyncImageView<Fallback: View>: View {
     let maxWidth: CGFloat
     let maxHeight: CGFloat
     let imageFit: ContentMode  // .fill (crop to fill) or .fit (show entire image)
+    let showLoadingState: Bool
     let fallback: () -> Fallback
 
     @State private var imageState: ImageLoadState = .loading
@@ -64,12 +88,13 @@ struct AsyncImageView<Fallback: View>: View {
         }
     }
 
-    init(iconPath: String, basePath: String?, maxWidth: CGFloat, maxHeight: CGFloat, imageFit: ContentMode = .fill, @ViewBuilder fallback: @escaping () -> Fallback) {
+    init(iconPath: String, basePath: String?, maxWidth: CGFloat, maxHeight: CGFloat, imageFit: ContentMode = .fill, showLoadingState: Bool = true, @ViewBuilder fallback: @escaping () -> Fallback) {
         self.iconPath = iconPath
         self.basePath = basePath
         self.maxWidth = maxWidth
         self.maxHeight = maxHeight
         self.imageFit = imageFit
+        self.showLoadingState = showLoadingState
         self.fallback = fallback
     }
 
@@ -77,29 +102,34 @@ struct AsyncImageView<Fallback: View>: View {
         Group {
             switch imageState {
             case .loading:
-                // Loading state - gradient background with spinner
-                ZStack {
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color.gray.opacity(0.3),
-                            Color.gray.opacity(0.1)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+                if showLoadingState {
+                    // Loading state - gradient background with spinner
+                    ZStack {
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.gray.opacity(0.3),
+                                Color.gray.opacity(0.1)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
 
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                            .tint(.white)
+                        VStack(spacing: 16) {
+                            ProgressView()
+                                .scaleEffect(1.5)
+                                .tint(.white)
 
-                        Text("Loading...")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.8))
+                            Text("Loading...")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.8))
+                        }
                     }
+                    .frame(width: maxWidth, height: maxHeight)
+                    .clipped()
+                } else {
+                    Color.clear
+                        .frame(width: maxWidth, height: maxHeight)
                 }
-                .frame(width: maxWidth, height: maxHeight)
-                .clipped()
 
             case .loaded(let nsImage):
                 // Use AnimatedGIFViewBlocked for GIFs (WKWebView-based), static Image for everything else
@@ -138,8 +168,20 @@ struct AsyncImageView<Fallback: View>: View {
         }
     }
 
+    /// Cache key incorporates path + display dimensions so differently-sized
+    /// usages of the same file each get an appropriately downsampled entry.
+    private var cacheKey: String {
+        "\(iconPath)@\(Int(maxWidth))x\(Int(maxHeight))"
+    }
+
     @MainActor
     private func loadImage() async {
+        // Check memory cache first (instant hit for back-navigation)
+        if let cached = AsyncImageCache.shared.image(forKey: cacheKey) {
+            withAnimation(.easeInOut(duration: 0.3)) { imageState = .loaded(cached) }
+            return
+        }
+
         // URL loading — fetch remote image over HTTP(S)
         if iconPath.hasPrefix("http://") || iconPath.hasPrefix("https://") {
             guard let url = URL(string: iconPath) else {
@@ -149,6 +191,7 @@ struct AsyncImageView<Fallback: View>: View {
             do {
                 let (data, _) = try await URLSession.shared.data(from: url)
                 if let nsImage = NSImage(data: data) {
+                    AsyncImageCache.shared.setImage(nsImage, forKey: cacheKey)
                     withAnimation(.easeInOut(duration: 0.3)) { imageState = .loaded(nsImage) }
                 } else {
                     writeLog("AsyncImageView: Invalid image data from URL: \(iconPath)", logLevel: .error)
@@ -171,11 +214,38 @@ struct AsyncImageView<Fallback: View>: View {
             fullPath = iconPath
         }
 
-        try? await Task.sleep(for: .milliseconds(100))
+        // Downsample on a background thread — decode at display size, not full resolution
+        let targetW = maxWidth
+        let targetH = maxHeight
+        let key = cacheKey
 
-        if let nsImage = NSImage(contentsOfFile: fullPath) {
+        let result: NSImage? = await Task.detached(priority: .userInitiated) {
+            // Use CGImageSource to downsample during decode (WWDC recommended approach)
+            let url = URL(fileURLWithPath: fullPath)
+            let sourceOpts: [CFString: Any] = [kCGImageSourceShouldCache: false]
+            guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOpts as CFDictionary) else {
+                return nil as NSImage?
+            }
+
+            // Target pixel size = max of display dimensions × 2 for Retina
+            let maxPixelSize = max(targetW, targetH) * 2.0
+            let downsampleOpts: [CFString: Any] = [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceShouldCacheImmediately: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceThumbnailMaxPixelSize: Int(maxPixelSize)
+            ]
+            guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, downsampleOpts as CFDictionary) else {
+                return nil as NSImage?
+            }
+
+            return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+        }.value
+
+        if let image = result {
+            AsyncImageCache.shared.setImage(image, forKey: key)
             withAnimation(.easeInOut(duration: 0.3)) {
-                imageState = .loaded(nsImage)
+                imageState = .loaded(image)
             }
         } else {
             withAnimation(.easeInOut(duration: 0.3)) {

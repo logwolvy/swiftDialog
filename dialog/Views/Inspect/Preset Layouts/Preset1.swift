@@ -43,9 +43,7 @@ struct Preset1View: View, InspectLayoutProtocol {
                         basePath: inspectState.uiConfiguration.iconBasePath,
                         inspectState: inspectState,
                         onContinue: {
-                            withAnimation(InspectConstants.stepTransition) {
-                                currentPhase = .main
-                            }
+                            currentPhase = .main
                         }
                     )
                     .frame(width: windowSize.width, height: windowSize.height)
@@ -68,6 +66,32 @@ struct Preset1View: View, InspectLayoutProtocol {
                     )
                     .frame(width: windowSize.width, height: windowSize.height)
                     .background(Color(NSColor.windowBackgroundColor))
+                }
+            }
+        }
+        .overlay(alignment: .bottom) {
+            // Persistent brand logo — rendered once, stays across phase transitions
+            if let logoConfig = inspectState.config?.logoConfig {
+                let showForPhase: Bool = {
+                    switch currentPhase {
+                    case .intro: return logoConfig.showOnIntro ?? true
+                    case .main: return logoConfig.showOnMain ?? true
+                    case .summary: return logoConfig.showOnSummary ?? true
+                    }
+                }()
+                if showForPhase {
+                    AsyncImageView(
+                        iconPath: logoConfig.imagePath,
+                        basePath: inspectState.uiConfiguration.iconBasePath,
+                        maxWidth: CGFloat(logoConfig.maxWidth ?? 120) * CGFloat(logoConfig.scale ?? 1.0),
+                        maxHeight: CGFloat(logoConfig.maxHeight ?? 40) * CGFloat(logoConfig.scale ?? 1.0),
+                        imageFit: .fit,
+                        showLoadingState: false,
+                        fallback: { EmptyView() }
+                    )
+                    .opacity(logoConfig.opacity ?? 0.6)
+                    .allowsHitTesting(false)
+                    .padding(.bottom, 60 * scaleFactor)
                 }
             }
         }
@@ -100,9 +124,7 @@ struct Preset1View: View, InspectLayoutProtocol {
               summaryConfig.autoTransition != false,
               !inspectState.items.isEmpty,
               inspectState.completedItems.count == inspectState.items.count else { return }
-        withAnimation(InspectConstants.stepTransition) {
-            currentPhase = .summary
-        }
+        currentPhase = .summary
     }
 
     /// When summaryScreen is configured, button1 transitions to summary instead of exit(0).
@@ -119,7 +141,8 @@ struct Preset1View: View, InspectLayoutProtocol {
     // MARK: - Main Phase (Original Preset1 Layout)
 
     private var mainPhaseView: some View {
-        HStack(spacing: 0) {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
             // Left sidebar with icon/image
             VStack {
                 Spacer()
@@ -146,22 +169,6 @@ struct Preset1View: View, InspectLayoutProtocol {
                 }
 
                 Spacer()
-
-                // Install info button - shows sheet if detailOverlay configured, otherwise popover
-                Button(inspectState.uiConfiguration.popupButtonText) {
-                    if inspectState.config?.detailOverlay != nil {
-                        showDetailOverlay = true
-                    } else {
-                        showingAboutPopover.toggle()
-                    }
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(primaryColor)
-                .font(.body)
-                .padding(.bottom, 20 * scaleFactor)
-                .popover(isPresented: $showingAboutPopover, arrowEdge: .top) {
-                    InstallationInfoPopoverView(inspectState: inspectState)
-                }
             }
             .frame(width: 280 * scaleFactor)
             .padding(.vertical)
@@ -172,34 +179,25 @@ struct Preset1View: View, InspectLayoutProtocol {
             // Right content area
             VStack(alignment: .leading, spacing: 0) {
                 // Header
-                HStack {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(localized("title", fallback: inspectState.uiConfiguration.windowTitle) ?? "")
                         .font(.system(size: 26, weight: .bold))
-                    Spacer()
 
-                    PresetCommonViews.buttonArea(
-                        state: inspectState,
-                        tintColor: primaryColor,
-                        onButton1Action: summaryScreenButtonAction
-                    )
+                    if let currentMessage = localizedSideMessage() {
+                        Text(currentMessage)
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                            .id(inspectState.uiConfiguration.currentSideMessageIndex)
+                            .transition(.opacity)
+                            .animation(.easeInOut(duration: 0.5), value: inspectState.uiConfiguration.currentSideMessageIndex)
+                    }
                 }
+                .frame(height: 60, alignment: .topLeading)
                 .padding(.horizontal)
                 .padding(.top, 12)
-                .padding(.bottom, 8)
-
-                if let currentMessage = localizedSideMessage() {
-                    Text(currentMessage)
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(3)
-                        .multilineTextAlignment(.leading)
-                        .padding(.horizontal)
-                        .padding(.bottom)
-                        .frame(minHeight: 50)
-                        .animation(.easeInOut(duration: 0.5), value: inspectState.uiConfiguration.currentSideMessageIndex)
-                }
-
-                Divider()
+                .padding(.bottom, 4)
 
                 // Item list
                 ScrollView {
@@ -226,18 +224,9 @@ struct Preset1View: View, InspectLayoutProtocol {
                     .padding(.vertical, 10 * scaleFactor)
                 }
 
-                Divider()
-
-                // Status bar
-                HStack {
-                    Text(inspectState.uiConfiguration.statusMessage)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                }
-                .padding()
-                .background(Color(NSColor.controlBackgroundColor).opacity(0.5))
             }
+            }
+            footerBar
         }
         .frame(width: windowSize.width, height: windowSize.height)
         .background(Color(NSColor.windowBackgroundColor))
@@ -275,6 +264,39 @@ struct Preset1View: View, InspectLayoutProtocol {
             }
             writeLog("Preset1View: Using refactored InspectState", logLevel: .info)
         }
+    }
+
+    // MARK: - Footer (Zone 5)
+
+    private var footerBar: some View {
+        HStack {
+            // Left: Info link
+            Button(inspectState.uiConfiguration.popupButtonText) {
+                if inspectState.config?.detailOverlay != nil {
+                    showDetailOverlay = true
+                } else {
+                    showingAboutPopover.toggle()
+                }
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(primaryColor)
+            .font(.system(size: 13))
+            .popover(isPresented: $showingAboutPopover, arrowEdge: .top) {
+                InstallationInfoPopoverView(inspectState: inspectState)
+            }
+
+            Spacer()
+
+            // Right: Action buttons
+            PresetCommonViews.buttonArea(
+                state: inspectState,
+                tintColor: primaryColor,
+                onButton1Action: summaryScreenButtonAction
+            )
+        }
+        .padding(.horizontal, 40 * scaleFactor)
+        .padding(.top, 8)
+        .padding(.bottom, 24 * scaleFactor)
     }
 
     // MARK: - Localization
@@ -380,7 +402,8 @@ struct Preset1View: View, InspectLayoutProtocol {
             // Status indicator with validation support
             statusIndicatorWithValidation(for: item)
         }
-        .padding(.horizontal)
+        .padding(.leading)
+        .padding(.trailing, 24)
         .padding(.vertical, 8)
     }
 

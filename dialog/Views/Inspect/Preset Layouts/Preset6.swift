@@ -149,6 +149,15 @@ struct Preset6View: View, InspectLayoutProtocol {
         return localizationService.string(forLanguage: lang, key: "\(item.id).\(property)") ?? fallback
     }
 
+    /// Resolve a localized UI string for the current processing step.
+    /// Keys follow the pattern: "{stepId}.ui.{key}" in sidecar files.
+    private func localizedProcessingText(_ key: String, fallback: String) -> String {
+        guard let lang = selectedLanguageCode,
+              localizationService.hasLanguage(lang),
+              let stepId = processingState.stepId else { return fallback }
+        return localizationService.string(forLanguage: lang, key: "\(stepId).ui.\(key)") ?? fallback
+    }
+
     /// Copy a GuidanceContent block with localized text applied.
     /// With manual selection: only applies after the language picker step.
     /// With default language: applies to ALL items.
@@ -344,11 +353,16 @@ struct Preset6View: View, InspectLayoutProtocol {
         }
         .sheet(isPresented: $showOverrideDialog) {
             if let stepId = processingState.stepId {
-                let cancelText = branding.button2Text ?? "Cancel"
+                let cancelText = localizedProcessingText("cancelButton", fallback: branding.button2Text ?? "Cancel")
                 OverrideDialogView(
                     isPresented: $showOverrideDialog,
                     stepId: stepId,
                     cancelButtonText: cancelText,
+                    titleText: localizedProcessingText("overrideTitle", fallback: "Override Step"),
+                    descriptionText: localizedProcessingText("overrideDescription", fallback: "This step has been waiting for an extended period. How would you like to proceed?"),
+                    successText: localizedProcessingText("markSuccess", fallback: "Mark as Success"),
+                    failureText: localizedProcessingText("markFailed", fallback: "Mark as Failed"),
+                    skipText: localizedProcessingText("skipStep", fallback: "Skip This Step"),
                     onAction: { action in
                         handleOverrideAction(action: action, stepId: stepId)
                     }
@@ -423,10 +437,6 @@ struct Preset6View: View, InspectLayoutProtocol {
                 .frame(height: bannerH)
                 .clipShape(UnevenRoundedRectangle(topLeadingRadius: 10, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 10, style: .continuous))
                 .ignoresSafeArea(edges: .top)
-            } else {
-                Rectangle()
-                    .fill(highlightColor)
-                    .frame(height: 4)
             }
 
             // Main content area
@@ -518,7 +528,7 @@ struct Preset6View: View, InspectLayoutProtocol {
                                 // Success/Failure banner
                                 resultBanner(for: currentItem)
                             }
-                            .frame(maxWidth: 420, alignment: .leading)
+                            .frame(maxWidth: 500, alignment: .leading)
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.horizontal, sp.contentPadH)
                             .padding(.vertical, sp.sectionGap)
@@ -618,19 +628,21 @@ struct Preset6View: View, InspectLayoutProtocol {
 
             // Status badge
             if completedSteps.contains(item.id) || inspectState.completedItems.contains(item.id) {
-                statusBadge(completed: true, failed: failedSteps[item.id] != nil)
+                let completedText = localized("completedStatus", forItem: item, fallback: item.completedStatus) ?? "Completed"
+                let failedText = "Failed"
+                statusBadge(completed: true, failed: failedSteps[item.id] != nil, completedText: completedText, failedText: failedText)
             }
         }
         .padding(.bottom, InspectSizes.SetupSpacing.titleSubtitle)
     }
 
     @ViewBuilder
-    private func statusBadge(completed: Bool, failed: Bool) -> some View {
+    private func statusBadge(completed: Bool, failed: Bool, completedText: String = "Completed", failedText: String = "Failed") -> some View {
         let statusColor = failed ? palette.error : palette.success
         HStack(spacing: 6) {
             StatusIconView(failed ? .failure : .success, size: 12)
 
-            Text(failed ? "Failed" : "Completed")
+            Text(failed ? failedText : completedText)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(statusColor)
         }
@@ -688,16 +700,19 @@ struct Preset6View: View, InspectLayoutProtocol {
                     .help(currentOverrideLevel != .none ? "Click to override" : "Waiting for result...")
             }
 
-            // Processing message
-            if let message = item.processingMessage {
-                let displayMessage: String = {
-                    if case .countdown(_, let remaining, _) = processingState {
-                        return message.replacingOccurrences(of: "{countdown}", with: "\(remaining)")
-                    } else if case .waiting = processingState {
-                        return "Waiting for result..."
-                    }
-                    return message
-                }()
+            // Processing message (localized)
+            let rawMessage = localized("processingMessage", forItem: item, fallback: item.processingMessage) ?? "Processing..."
+            let displayMessage: String = {
+                if case .countdown(_, let remaining, _) = processingState {
+                    return rawMessage.replacingOccurrences(of: "{countdown}", with: "\(remaining)")
+                } else if case .waiting = processingState {
+                    return rawMessage.replacingOccurrences(of: "{countdown}", with: "")
+                        .replacingOccurrences(of: "  ", with: " ")
+                        .trimmingCharacters(in: .whitespaces)
+                }
+                return rawMessage
+            }()
+            if true {
 
                 Text(displayMessage)
                     .font(.body.weight(.medium))
@@ -744,7 +759,7 @@ struct Preset6View: View, InspectLayoutProtocol {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
 
-                Text("Waiting for \(waitTime) seconds...")
+                Text(localizedProcessingText("waitingSeconds", fallback: "Waiting for \(waitTime) seconds..."))
                     .font(.subheadline)
                     .foregroundStyle(.primary)
 
@@ -757,7 +772,7 @@ struct Preset6View: View, InspectLayoutProtocol {
             }) {
                 HStack {
                     Image(systemName: "hand.raised.fill")
-                    Text("Override This Step")
+                    Text(localizedProcessingText("overrideButton", fallback: "Override This Step"))
                 }
                 .font(.system(size: isLarge ? 14 : 12, weight: .medium))
                 .foregroundStyle(.white)
@@ -793,7 +808,7 @@ struct Preset6View: View, InspectLayoutProtocol {
                     StatusIconView(.failure, size: 20 * scaleFactor)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(item.failureMessage ?? "Step Failed")
+                        Text(localized("failureMessage", forItem: item, fallback: item.failureMessage) ?? "Step Failed")
                             .font(.body.weight(.semibold))
 
                         if let reason = failedSteps[item.id] {
@@ -817,7 +832,7 @@ struct Preset6View: View, InspectLayoutProtocol {
                 HStack(spacing: sp.blockGap) {
                     StatusIconView(.warning, size: 20 * scaleFactor)
 
-                    Text("Step Skipped")
+                    Text(localizedProcessingText("stepSkipped", fallback: "Step Skipped"))
                         .font(.body.weight(.semibold))
 
                     Spacer()
@@ -943,7 +958,7 @@ struct Preset6View: View, InspectLayoutProtocol {
 
             // If step failed, offer "Continue Anyway"
             if failedSteps[currentItem.id] != nil {
-                return "Continue Anyway"
+                return localized("continueAnywayText", forItem: currentItem, fallback: nil) ?? "Continue Anyway"
             }
         }
 
@@ -959,7 +974,7 @@ struct Preset6View: View, InspectLayoutProtocol {
 
         IntroStepContainer(
             accentColor: highlightColor,
-            accentBorderHeight: 4,
+            accentBorderHeight: 0,
             showProgressDots: false,
             currentStep: 0,
             totalSteps: 1,
@@ -1400,7 +1415,7 @@ struct Preset6View: View, InspectLayoutProtocol {
             handleCompletionTrigger(stepId: stepId, result: .success(message: nil))
         case .failure:
             writeInteractionLog("override_failure", step: stepId)
-            handleCompletionTrigger(stepId: stepId, result: .failure(message: "Marked as failed by user"))
+            handleCompletionTrigger(stepId: stepId, result: .failure(message: localizedProcessingText("markedFailed", fallback: "Marked as failed by user")))
         case .skip:
             writeInteractionLog("override_skip", step: stepId)
             handleCompletionTrigger(stepId: stepId, result: .cancelled)

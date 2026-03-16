@@ -42,9 +42,7 @@ struct Preset2View: View, InspectLayoutProtocol {
                         basePath: inspectState.uiConfiguration.iconBasePath,
                         inspectState: inspectState,
                         onContinue: {
-                            withAnimation(InspectConstants.stepTransition) {
-                                currentPhase = .main
-                            }
+                            currentPhase = .main
                         }
                     )
                     .background(Color(NSColor.windowBackgroundColor))
@@ -65,6 +63,27 @@ struct Preset2View: View, InspectLayoutProtocol {
                         }
                     )
                     .background(Color(NSColor.windowBackgroundColor))
+                }
+            }
+        }
+        .overlay(alignment: .bottom) {
+            // Logo overlay — persistent across all phases
+            if let logoConfig = inspectState.config?.logoConfig {
+                let showForPhase = logoOpacityForPhase(logoConfig) > 0
+                if showForPhase {
+                    AsyncImageView(
+                        iconPath: logoConfig.imagePath,
+                        basePath: inspectState.uiConfiguration.iconBasePath,
+                        maxWidth: CGFloat(logoConfig.maxWidth ?? 120) * CGFloat(logoConfig.scale ?? 1.0),
+                        maxHeight: CGFloat(logoConfig.maxHeight ?? 40) * CGFloat(logoConfig.scale ?? 1.0),
+                        imageFit: .fit,
+                        showLoadingState: false,
+                        fallback: { EmptyView() }
+                    )
+                    .opacity(logoConfig.opacity ?? 0.6)
+                    .allowsHitTesting(false)
+                    .padding(.bottom, 60 * scaleFactor)
+                    .transaction { $0.animation = nil }
                 }
             }
         }
@@ -95,9 +114,19 @@ struct Preset2View: View, InspectLayoutProtocol {
               summaryConfig.autoTransition != false,
               !inspectState.items.isEmpty,
               inspectState.completedItems.count == inspectState.items.count else { return }
-        withAnimation(InspectConstants.stepTransition) {
-            currentPhase = .summary
+        currentPhase = .summary
+    }
+
+    // MARK: - Shared Logo Helpers
+
+    /// Opacity for the shared logo — 0 when hidden for a phase, otherwise config opacity
+    private func logoOpacityForPhase(_ logo: InspectConfig.LogoConfig) -> Double {
+        let visible: Bool = switch currentPhase {
+        case .intro:   logo.showOnIntro ?? true
+        case .main:    logo.showOnMain ?? true
+        case .summary: logo.showOnSummary ?? true
         }
+        return visible ? (logo.opacity ?? 0.6) : 0.0
     }
 
     /// When summaryScreen is configured, button1 transitions to summary instead of exit(0).
@@ -114,10 +143,71 @@ struct Preset2View: View, InspectLayoutProtocol {
     // MARK: - Main Phase (Original Preset2 Layout)
 
     private var mainPhaseView: some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .top) {
+            // Edge-to-edge background — fills behind title bar area
+            Color(NSColor.windowBackgroundColor)
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
             // Top section - either banner or icon
-            if inspectState.uiConfiguration.bannerImage != nil {
-                // Banner display
+            if inspectState.uiConfiguration.bannerImage == "gradient" {
+                // Procedural gradient banner with centered icon
+                let bannerH = CGFloat(inspectState.uiConfiguration.bannerHeight) * scaleFactor
+                let gradientPalette = (inspectState.config?.gradientPalette ?? ["#007AFF", "#5AC8FA"]).compactMap { Color(hex: $0) }
+                let gradientSeed = inspectState.uiConfiguration.windowTitle ?? "preset2"
+                let gradientStyleStr = inspectState.config?.gradientStyle ?? "ethereal"
+                let gradientStyle = ProceduralGradientStyle(rawValue: gradientStyleStr) ?? .ethereal
+
+                ZStack(alignment: .bottom) {
+                    // Gradient background — fills to top edge
+                    ProceduralGradientView(seed: gradientSeed, palette: gradientPalette, style: gradientStyle)
+
+                    // Bottom fade for clean transition
+                    LinearGradient(
+                        colors: [.clear, Color(NSColor.windowBackgroundColor).opacity(0.6)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: bannerH * 0.3)
+
+                    // Centered icon
+                    VStack(spacing: 8 * scaleFactor) {
+                        IconView(
+                            image: getMainIconPath(),
+                            overlay: iconCache.getOverlayIconPath(for: inspectState),
+                            defaultImage: "briefcase.fill",
+                            defaultColour: "accent"
+                        )
+                        .frame(height: 160 * scaleFactor)
+                        .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
+
+                        // Banner title chip
+                        if let bannerTitle = localized("bannerTitle", fallback: inspectState.uiConfiguration.bannerTitle) {
+                            Text(bannerTitle)
+                                .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 6)
+                                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+                        }
+                    }
+                    .padding(.bottom, 12 * scaleFactor)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: bannerH)
+                .clipped()
+                .ignoresSafeArea(edges: .top)
+                .onAppear { iconCache.cacheMainIcon(for: inspectState) }
+
+                // Title below banner
+                Text(localized("title", fallback: inspectState.uiConfiguration.windowTitle) ?? "")
+                    .font(.system(size: 26, weight: .bold))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 12 * scaleFactor)
+                    .padding(.bottom, 4 * scaleFactor)
+            } else if inspectState.uiConfiguration.bannerImage != nil {
+                // Image banner display
                 ZStack {
                     if let bannerNSImage = iconCache.bannerImage {
                         Image(nsImage: bannerNSImage)
@@ -155,7 +245,7 @@ struct Preset2View: View, InspectLayoutProtocol {
                         defaultImage: "briefcase.fill",
                         defaultColour: "accent"
                     )
-                    .frame(height: 120 * scaleFactor)
+                    .frame(height: 140 * scaleFactor)
                     .onAppear { iconCache.cacheMainIcon(for: inspectState) }
 
                     // Title - positioned below icon, centered
@@ -164,24 +254,27 @@ struct Preset2View: View, InspectLayoutProtocol {
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.top, 40 * scaleFactor)
+                .padding(.top, 24 * scaleFactor)
             }
 
-            // Rotating side messages - always visible
-            if let currentMessage = localizedSideMessage() {
-                Text(currentMessage)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(4)
-                    .padding(.horizontal, 50 * scaleFactor)
-                    .frame(minHeight: 45 * scaleFactor)
-                    .animation(.easeInOut(duration: InspectConstants.standardAnimationDuration), value: inspectState.uiConfiguration.currentSideMessageIndex)
+            // Rotating side messages - fixed height to prevent layout shifts
+            Group {
+                if let currentMessage = localizedSideMessage() {
+                    Text(currentMessage)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                        .transition(.opacity)
+                        .animation(.easeInOut(duration: InspectConstants.standardAnimationDuration), value: inspectState.uiConfiguration.currentSideMessageIndex)
+                }
             }
+            .frame(height: 36 * scaleFactor)
+            .padding(.horizontal, 50 * scaleFactor)
 
             // App cards with navigation arrows
             VStack(spacing: 6 * scaleFactor) {
-                let visibleCount = sizeMode == "compact" ? 4 : (sizeMode == "large" ? 6 : 5)
+                let visibleCount = 4
                 let allItemsFit = inspectState.items.count <= visibleCount
 
                 HStack(spacing: 16 * scaleFactor) {
@@ -191,15 +284,15 @@ struct Preset2View: View, InspectLayoutProtocol {
                             scrollLeft()
                         }) {
                             Image(systemName: "chevron.left.circle.fill")
-                                .font(.system(size: 28 * scaleFactor))
-                                .foregroundStyle(canScrollLeft() ? Color(hex: inspectState.uiConfiguration.highlightColor) : .gray.opacity(0.3))
+                                .font(.system(size: 24 * scaleFactor))
+                                .foregroundStyle(canScrollLeft() ? Color(hex: inspectState.uiConfiguration.highlightColor) : .gray.opacity(0.2))
                         }
                         .disabled(!canScrollLeft())
                         .buttonStyle(PlainButtonStyle())
                     }
 
                     // App cards - show 5 at a time
-                    HStack(spacing: 12 * scaleFactor) {
+                    HStack(spacing: 16 * scaleFactor) {
                         ForEach(getVisibleItemsWithOffset(), id: \.id) { item in
                             Preset2ItemCardView(
                                 item: item,
@@ -242,26 +335,23 @@ struct Preset2View: View, InspectLayoutProtocol {
                             scrollRight()
                         }) {
                             Image(systemName: "chevron.right.circle.fill")
-                                .font(.system(size: 28 * scaleFactor))
-                                .foregroundStyle(canScrollRight() ? Color(hex: inspectState.uiConfiguration.highlightColor) : .gray.opacity(0.3))
+                                .font(.system(size: 24 * scaleFactor))
+                                .foregroundStyle(canScrollRight() ? Color(hex: inspectState.uiConfiguration.highlightColor) : .gray.opacity(0.2))
                         }
                         .disabled(!canScrollRight())
                         .buttonStyle(PlainButtonStyle())
                     }
                 }
-                .padding(.horizontal, 40 * scaleFactor)
+                .padding(.horizontal, 48 * scaleFactor)
             }
             .padding(.top, 16)
 
-            Spacer()
-                //.frame(maxHeight: 30 * scaleFactor)
-
-            // Bottom progress section
-            VStack(spacing: 12) {
+            // Progress section — sits below cards, above spacer
+            VStack(spacing: 4) {
                 // Progress bar
                 ProgressView(value: Double(inspectState.completedItems.count), total: Double(inspectState.items.count))
                     .progressViewStyle(.linear)
-                    .frame(width: 600 * scaleFactor)
+                    .frame(maxWidth: 700 * scaleFactor)
                     .tint(Color(hex: inspectState.uiConfiguration.highlightColor))
 
                 // Progress text (customizable via uiLabels.progressFormat)
@@ -269,7 +359,10 @@ struct Preset2View: View, InspectLayoutProtocol {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .padding(.vertical, 16 * scaleFactor)
+            .padding(.horizontal, 48 * scaleFactor)
+            .padding(.top, 12 * scaleFactor)
+
+            Spacer(minLength: 16 * scaleFactor)
 
             // Bottom section — info link left, buttons right
             HStack {
@@ -344,9 +437,7 @@ struct Preset2View: View, InspectLayoutProtocol {
             .padding(.horizontal, 40 * scaleFactor)
             .padding(.bottom, 24 * scaleFactor)
         }
-        //.frame(width: windowSize.width, height: windowSize.height)
-        .background(Color(NSColor.windowBackgroundColor))
-        .ignoresSafeArea()
+        } // ZStack
         .overlay {
             // Help button (positioned according to config)
             // Supports action types: overlay (default), url, custom
@@ -471,7 +562,7 @@ struct Preset2View: View, InspectLayoutProtocol {
     }
 
     private func canScrollRight() -> Bool {
-        let visibleCount = sizeMode == "compact" ? 4 : (sizeMode == "large" ? 6 : 5)
+        let visibleCount = 4
         return scrollOffset + visibleCount < inspectState.items.count
     }
 
@@ -483,7 +574,7 @@ struct Preset2View: View, InspectLayoutProtocol {
 
     private func scrollRight() {
         if canScrollRight() {
-            let visibleCount = sizeMode == "compact" ? 4 : (sizeMode == "large" ? 6 : 5)
+            let visibleCount = 4
             scrollOffset = min(inspectState.items.count - visibleCount, scrollOffset + 1)  // Shift by 1
         }
     }
@@ -492,9 +583,7 @@ struct Preset2View: View, InspectLayoutProtocol {
         // Adjust visible cards based on size mode
         let visibleCount: Int
         switch sizeMode {
-        case "compact": visibleCount = 4  // increased from 3 to 4
-        case "large": visibleCount = 6
-        default: visibleCount = 5  // standard - increased from 4 to 5
+        default: visibleCount = 4
         }
 
         let startIndex = scrollOffset
@@ -529,7 +618,7 @@ struct Preset2View: View, InspectLayoutProtocol {
             return
         }
 
-        let visibleCount = sizeMode == "compact" ? 4 : (sizeMode == "large" ? 6 : 5)
+        let visibleCount = 4
 
         // Optimized try to keep downloading item in view position (index 1) when possible
         // Ther ordewr should be: [1 completed] [downloading] [penidng] [pending]...
@@ -683,10 +772,10 @@ private struct Preset2ItemCardView: View {
         VStack(spacing: 4 * scale) {
             // Icon with status overlay — fixed height so text below doesn't shift it
             ZStack {
-                // Item icon - larger size
+                // Item icon - large with rounded corners
                 IconView(image: resolvedIconPath, defaultImage: "app.fill", defaultColour: "accent")
-                    .frame(width: 90 * scale, height: 90 * scale)
-                    .clipShape(.rect(cornerRadius: 16 * scale))
+                    .frame(width: 100 * scale, height: 100 * scale)
+                    .clipShape(.rect(cornerRadius: 22 * scale))
 
                 // Info button overlay (top-left) - only show if detailOverlay or itemOverlay is configured
                 if onInfoTapped != nil && (inspectState.config?.detailOverlay != nil || item.itemOverlay != nil) {
@@ -752,7 +841,7 @@ private struct Preset2ItemCardView: View {
                 }
                 .padding(2 * scale)
             }
-            .frame(height: 90 * scale)
+            .frame(height: 100 * scale)
 
             // App name and status — fixed height to prevent icon shifting
             VStack(spacing: 2 * scale) {
@@ -776,18 +865,18 @@ private struct Preset2ItemCardView: View {
                         .lineLimit(1)
                 }
             }
-            .frame(width: 110 * scale)
+            .frame(width: 120 * scale)
             .frame(height: 50 * scale)
         }
-        .frame(width: 130 * scale, height: 160 * scale)
-        .padding(6 * scale)
+        .frame(width: 148 * scale, height: 175 * scale)
+        .padding(8 * scale)
         .background(
-            RoundedRectangle(cornerRadius: 10 * scale)
-                .fill(Color(NSColor.controlBackgroundColor))
+            RoundedRectangle(cornerRadius: 18 * scale, style: .continuous)
+                .fill(isDownloading ? Color(hex: highlightColor).opacity(0.06) : Color(NSColor.controlBackgroundColor))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10 * scale)
-                        .stroke(isDownloading ? Color(hex: highlightColor).opacity(0.5) : Color.gray.opacity(0.15),
-                               lineWidth: isDownloading ? 1.5 : 1)
+                    RoundedRectangle(cornerRadius: 18 * scale, style: .continuous)
+                        .stroke(isDownloading ? Color(hex: highlightColor).opacity(0.4) : Color.gray.opacity(0.1),
+                               lineWidth: isDownloading ? 1.5 : 0.5)
                 )
         )
         .opacity(isCompleted ? 1.0 : (isDownloading ? 1.0 : 0.75))
@@ -801,16 +890,16 @@ private struct Preset2PlaceholderCardView: View {
 
     var body: some View {
         VStack(spacing: 4 * scale) {
-            RoundedRectangle(cornerRadius: 14 * scale)
-                .fill(Color.gray.opacity(0.05))
-                .frame(width: 72 * scale, height: 72 * scale)
+            RoundedRectangle(cornerRadius: 22 * scale, style: .continuous)
+                .fill(Color.gray.opacity(0.04))
+                .frame(width: 80 * scale, height: 80 * scale)
 
             RoundedRectangle(cornerRadius: 4)
-                .fill(Color.gray.opacity(0.05))
+                .fill(Color.gray.opacity(0.04))
                 .frame(width: 70 * scale, height: 10 * scale)
         }
-        .frame(width: 110 * scale, height: 120 * scale)
-        .padding(6 * scale)
+        .frame(width: 130 * scale, height: 140 * scale)
+        .padding(8 * scale)
     }
 }
 

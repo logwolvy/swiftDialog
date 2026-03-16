@@ -109,6 +109,33 @@ struct BentoCell: View {
         CGFloat(config.cornerRadius ?? 12) * scaleFactor
     }
 
+    /// Resolve gradient style from config string
+    private var resolvedGradientStyle: ProceduralGradientStyle {
+        switch config.gradientStyle?.lowercased() {
+        case "vivid": return .vivid
+        case "subtle": return .subtle
+        default: return .ethereal
+        }
+    }
+
+    /// Build gradient palette from config colors, tintColor, or backgroundColor
+    private var gradientPalette: [Color] {
+        // Explicit palette from config
+        if let hexColors = config.gradientPalette, !hexColors.isEmpty {
+            return hexColors.map { Color(hex: $0) }
+        }
+        // Fall back to tintColor
+        if let tint = tintColor {
+            return [tint]
+        }
+        // Fall back to backgroundColor hex
+        if let bgHex = config.backgroundColor {
+            return [Color(hex: bgHex)]
+        }
+        // Empty — ProceduralGradientView will generate from seed
+        return []
+    }
+
     private var backgroundColor: Color {
         if let colorHex = config.backgroundColor {
             return Color(hex: colorHex)
@@ -134,16 +161,29 @@ struct BentoCell: View {
     var body: some View {
         Button(action: onTap) {
             ZStack {
-                // Background
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(backgroundColor)
+                // Background — procedural gradient or flat color
+                if let bgStyle = config.backgroundStyle,
+                   (bgStyle == "gradient" || bgStyle == "mesh") {
+                    ProceduralGradientView(
+                        seed: config.id,
+                        palette: gradientPalette,
+                        style: resolvedGradientStyle
+                    )
+                } else {
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .fill(backgroundColor)
+                }
 
                 // Content based on type
                 contentView
             }
             .frame(width: width, height: height)
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-            .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .stroke(Color.primary.opacity(0.15), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
         }
         .buttonStyle(.plain)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius))
@@ -266,11 +306,19 @@ struct BentoCell: View {
         }
     }
 
+    /// Whether this cell uses a procedural gradient background
+    private var hasGradientBackground: Bool {
+        if let bgStyle = config.backgroundStyle {
+            return bgStyle == "gradient" || bgStyle == "mesh"
+        }
+        return false
+    }
+
     @ViewBuilder
     private var mixedContent: some View {
         ZStack(alignment: .bottomLeading) {
-            // Background image
-            if let imagePath = config.imagePath {
+            // Background image (skip when procedural gradient is the background)
+            if !hasGradientBackground, let imagePath = config.imagePath {
                 AsyncBentoImageView(
                     imagePath: imagePath,
                     basePath: iconBasePath,
@@ -280,9 +328,9 @@ struct BentoCell: View {
                 )
             }
 
-            // Gradient overlay for text readability
+            // Gradient overlay for text readability (lighter when gradient bg is present)
             LinearGradient(
-                gradient: Gradient(colors: [.clear, .black.opacity(0.6)]),
+                gradient: Gradient(colors: [.clear, .black.opacity(hasGradientBackground ? 0.35 : 0.6)]),
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -639,6 +687,7 @@ struct BentoInlineDetailView: View {
     let onClose: () -> Void
 
     @Environment(\.colorScheme) private var colorScheme
+    @FocusState private var isFocused: Bool
 
     private var headerIcon: String? {
         overlay.icon ?? cellConfig.sfSymbol
@@ -652,77 +701,333 @@ struct BentoInlineDetailView: View {
         overlay.subtitle ?? cellConfig.subtitle
     }
 
+    /// Resolved media path: explicit detailMedia, or fall back to cell's imagePath
+    private var resolvedMediaPath: String? {
+        overlay.detailMedia ?? cellConfig.imagePath
+    }
+
+    /// Whether to show the split media layout (wide enough + media available)
+    private var showMediaPanel: Bool {
+        resolvedMediaPath != nil && gridSize.width >= 700
+    }
+
+    /// Width ratio for the media panel
+    private let mediaRatio: CGFloat = 0.4
+
+    /// Whether this cell has a procedural gradient background
+    private var hasGradientBackground: Bool {
+        if let bgStyle = cellConfig.backgroundStyle {
+            return bgStyle == "gradient" || bgStyle == "mesh"
+        }
+        return false
+    }
+
+    /// Resolve gradient style from config
+    private var resolvedGradientStyle: ProceduralGradientStyle {
+        switch cellConfig.gradientStyle?.lowercased() {
+        case "vivid": return .vivid
+        case "subtle": return .subtle
+        default: return .ethereal
+        }
+    }
+
+    /// Build gradient palette from cell config
+    private var gradientPalette: [Color] {
+        if let hexColors = cellConfig.gradientPalette, !hexColors.isEmpty {
+            return hexColors.map { Color(hex: $0) }
+        }
+        if let bgHex = cellConfig.backgroundColor {
+            return [Color(hex: bgHex)]
+        }
+        return [accentColor]
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Header with back button
-            HStack(spacing: 12) {
-                Button(action: onClose) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text("Back")
-                            .font(.system(size: 14, weight: .medium))
+            // Gradient header banner (when cell has gradient background)
+            if hasGradientBackground {
+                ZStack {
+                    // Gradient background — fills entire banner
+                    ProceduralGradientView(
+                        seed: cellConfig.id,
+                        palette: gradientPalette,
+                        style: resolvedGradientStyle
+                    )
+
+                    // Soft vignette for depth
+                    LinearGradient(
+                        colors: [.black.opacity(0.15), .clear, .black.opacity(0.1)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+
+                    // Content layered on the gradient
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Nav bar
+                        HStack(spacing: 12) {
+                            Button(action: onClose) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "chevron.left")
+                                        .font(.system(size: 14, weight: .semibold))
+                                    Text("Back")
+                                        .font(.system(size: 14, weight: .medium))
+                                }
+                                .foregroundStyle(.white.opacity(0.9))
+                            }
+                            .buttonStyle(.plain)
+
+                            Spacer()
+
+                            Button(action: onClose) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 22))
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(.white.opacity(0.8))
+                            }
+                            .buttonStyle(.plain)
+                            .help("Close (Esc)")
+                        }
+                        .padding(.horizontal, 28)
+                        .padding(.top, 20)
+
+                        Spacer()
+
+                        // Icon + title at the bottom of the banner
+                        HStack(alignment: .center, spacing: 16) {
+                            if let iconName = headerIcon {
+                                let symbolName = iconName.hasPrefix("sf=") ? String(iconName.dropFirst(3)) : iconName
+                                if !iconName.contains("/") && !iconName.contains(".") {
+                                    ZStack {
+                                        Circle()
+                                            .fill(.white.opacity(0.2))
+                                            .frame(width: 52, height: 52)
+                                        Image(systemName: symbolName)
+                                            .font(.system(size: 24, weight: .medium))
+                                            .foregroundStyle(.white)
+                                    }
+                                }
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(headerTitle)
+                                    .font(.system(size: 26, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+
+                                if let subtitle = headerSubtitle {
+                                    Text(subtitle)
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(.white.opacity(0.85))
+                                        .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 32)
+                        .padding(.bottom, 24)
                     }
-                    .foregroundStyle(accentColor)
                 }
-                .buttonStyle(.plain)
-
-                Spacer()
-
-                // Optional icon (right side)
-                if let iconName = headerIcon {
-                    if !iconName.contains("/") && !iconName.contains(".") {
-                        let symbolName = iconName.hasPrefix("sf=") ? String(iconName.dropFirst(3)) : iconName
-                        Image(systemName: symbolName)
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundStyle(accentColor)
+                .frame(height: gridSize.height * 0.35)
+            } else {
+                // Plain navigation bar (no gradient)
+                HStack(spacing: 12) {
+                    Button(action: onClose) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Back")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .foregroundStyle(accentColor)
                     }
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
+                    .buttonStyle(.plain)
 
-            Divider()
+                    Spacer()
 
-            // Content area
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    // Title
-                    Text(headerTitle)
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundStyle(.primary)
-
-                    // Subtitle
-                    if let subtitle = headerSubtitle {
-                        Text(subtitle)
-                            .font(.system(size: 14))
+                    Button(action: onClose) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 22))
+                            .symbolRenderingMode(.hierarchical)
                             .foregroundStyle(.secondary)
                     }
-
-                    Spacer().frame(height: 4)
-
-                    // Rich content from detailOverlay
-                    if let content = overlay.content, !content.isEmpty {
-                        GuidanceContentView(
-                            contentBlocks: content,
-                            scaleFactor: 1.0,
-                            iconBasePath: iconBasePath,
-                            inspectState: inspectState,
-                            itemId: "bento-inline-\(cellConfig.id)",
-                            onOverlayTap: nil
-                        )
-                    }
+                    .buttonStyle(.plain)
+                    .help("Close (Esc)")
                 }
-                .padding(20)
+                .padding(.horizontal, 28)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
+            }
+
+            // Content area: text-only or split with media
+            if showMediaPanel {
+                HStack(spacing: 0) {
+                    textContentPanel(skipHeader: hasGradientBackground)
+                        .frame(width: gridSize.width * (1 - mediaRatio))
+
+                    detailMediaPanel
+                        .frame(width: gridSize.width * mediaRatio)
+                        .clipped()
+                }
+            } else {
+                textContentPanel(skipHeader: hasGradientBackground)
             }
         }
         .frame(width: gridSize.width, height: gridSize.height)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(NSColor.windowBackgroundColor))
-                .shadow(color: .black.opacity(0.15), radius: 20, y: 8)
+                .shadow(color: .black.opacity(0.18), radius: 24, y: 10)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.primary.opacity(0.18), lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .focusable()
+        .focusEffectDisabled()
+        .focused($isFocused)
+        .onAppear {
+            // Delay focus acquisition to avoid race with animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isFocused = true
+            }
+        }
+        .onDisappear {
+            isFocused = false
+        }
+        .onKeyPress(.escape) {
+            isFocused = false
+            onClose()
+            return .handled
+        }
+    }
+
+    // MARK: - Text Content Panel
+
+    private func textContentPanel(skipHeader: Bool = false) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                if !skipHeader {
+                    // Apple-style hero header: icon in tinted circle + title + subtitle
+                    HStack(alignment: .top, spacing: 18) {
+                        // Icon in tinted circle
+                        if let iconName = headerIcon {
+                            let symbolName = iconName.hasPrefix("sf=") ? String(iconName.dropFirst(3)) : iconName
+                            if !iconName.contains("/") && !iconName.contains(".") {
+                                ZStack {
+                                    Circle()
+                                        .fill(accentColor.opacity(0.12))
+                                        .frame(width: 56, height: 56)
+                                    Image(systemName: symbolName)
+                                        .font(.system(size: 26, weight: .medium))
+                                        .foregroundStyle(accentColor)
+                                }
+                                .padding(.top, 2)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            // Title
+                            Text(headerTitle)
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundStyle(.primary)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            // Subtitle
+                            if let subtitle = headerSubtitle {
+                                Text(subtitle)
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(.secondary)
+                                    .lineSpacing(3)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, 28)
+
+                    // Thin divider
+                    Rectangle()
+                        .fill(Color.primary.opacity(0.08))
+                        .frame(height: 1)
+                        .padding(.horizontal, 32)
+                }
+
+                // Rich content from detailOverlay
+                if let content = overlay.content, !content.isEmpty {
+                    GuidanceContentView(
+                        contentBlocks: content,
+                        scaleFactor: 1.0,
+                        iconBasePath: iconBasePath,
+                        inspectState: inspectState,
+                        itemId: "bento-inline-\(cellConfig.id)",
+                        onOverlayTap: nil
+                    )
+                    .padding(.horizontal, 32)
+                    .padding(.top, skipHeader ? 16 : 24)
+                    .padding(.bottom, 28)
+                }
+            }
+            .padding(.top, skipHeader ? 0 : 8)
+        }
+    }
+
+    // MARK: - Detail Media Panel
+
+    @ViewBuilder
+    private var detailMediaPanel: some View {
+        if let mediaPath = resolvedMediaPath {
+            let url: URL = mediaPath.hasPrefix("http")
+                ? (URL(string: mediaPath) ?? URL(fileURLWithPath: mediaPath))
+                : URL(fileURLWithPath: mediaPath)
+            let mediaType = IntroMediaType.detect(from: url)
+            let useFit = (overlay.detailMediaFit ?? cellConfig.imageFit ?? "fill").lowercased() == "fit"
+            let cornerRadius: CGFloat = 12
+            let inset: CGFloat = 16
+
+            GeometryReader { geo in
+                let mediaW = geo.size.width - inset * 2
+                let mediaH = geo.size.height - inset * 2
+
+                VStack {
+                    Spacer(minLength: 0)
+
+                    Group {
+                        switch mediaType {
+                        case .staticImage:
+                            AsyncImageView(
+                                iconPath: mediaPath,
+                                basePath: iconBasePath,
+                                maxWidth: mediaW,
+                                maxHeight: mediaH,
+                                imageFit: useFit ? .fit : .fill,
+                                fallback: { Color.secondary.opacity(0.1) }
+                            )
+
+                        case .animatedImage:
+                            IntroAnimatedImageView(url: url, maxWidth: mediaW, maxHeight: mediaH)
+
+                        case .video:
+                            IntroNativeVideoPlayer(url: url, autoplay: true)
+
+                        default:
+                            AsyncImageView(
+                                iconPath: mediaPath,
+                                basePath: iconBasePath,
+                                maxWidth: mediaW,
+                                maxHeight: mediaH,
+                                imageFit: useFit ? .fit : .fill,
+                                fallback: { Color.secondary.opacity(0.1) }
+                            )
+                        }
+                    }
+                    .frame(width: mediaW, height: mediaH)
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+
+                    Spacer(minLength: 0)
+                }
+                .padding(inset)
+            }
+        }
     }
 }
 
@@ -739,6 +1044,7 @@ struct BentoGridView: View {
     let iconBasePath: String?
     let tintColor: Color?
     let inlineExpansion: Bool
+    let containerHeight: CGFloat?
     @ObservedObject var inspectState: InspectState
 
     @State private var selectedCell: InspectConfig.GuidanceContent.BentoCellConfig?
@@ -760,7 +1066,8 @@ struct BentoGridView: View {
         iconBasePath: String?,
         tintColor: Color?,
         inspectState: InspectState,
-        inlineExpansion: Bool = false
+        inlineExpansion: Bool = false,
+        containerHeight: CGFloat? = nil
     ) {
         self.cells = cells
         self.columns = columns
@@ -771,6 +1078,7 @@ struct BentoGridView: View {
         self.iconBasePath = iconBasePath
         self.tintColor = tintColor
         self.inlineExpansion = inlineExpansion
+        self.containerHeight = containerHeight
         self._inspectState = ObservedObject(wrappedValue: inspectState)
     }
 
@@ -791,6 +1099,9 @@ struct BentoGridView: View {
                 gap: gap * scaleFactor
             )
             let gridSize = CGSize(width: availableWidth, height: gridHeight)
+            // For inline detail, use the full container height (not just the grid)
+            let detailHeight = containerHeight ?? max(gridHeight, 480)
+            let detailSize = CGSize(width: availableWidth, height: detailHeight)
 
             ZStack(alignment: .topLeading) {
                 // Grid cells
@@ -823,22 +1134,26 @@ struct BentoGridView: View {
                             }
                         )
                         .offset(x: placement.x, y: placement.y)
-                        .opacity(isVisible ? (isDimmed ? 0.3 : 1) : 0)
+                        .opacity(isVisible ? (isDimmed ? 0.0 : 1) : 0)
                         .scaleEffect(isVisible ? 1 : 0.85)
                         .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isVisible)
                         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: isDimmed)
-                        .allowsHitTesting(expandedCellId == nil)
+                        .allowsHitTesting(!isDimmed && expandedCellId == nil)
                     }
                 }
 
+            }
+            .frame(width: availableWidth, height: gridHeight, alignment: .topLeading)
+            .overlay {
                 // Inline detail overlay (when inlineExpansion is true)
+                // Rendered as overlay so it doesn't affect grid frame height
                 if inlineExpansion, let expandedId = expandedCellId,
                    let cellConfig = cells.first(where: { $0.id == expandedId }),
-                   let overlay = cellConfig.detailOverlay {
+                   let detailConfig = cellConfig.detailOverlay {
                     BentoInlineDetailView(
                         cellConfig: cellConfig,
-                        overlay: overlay,
-                        gridSize: gridSize,
+                        overlay: detailConfig,
+                        gridSize: detailSize,
                         accentColor: accentColor,
                         iconBasePath: iconBasePath,
                         inspectState: inspectState,
@@ -849,16 +1164,10 @@ struct BentoGridView: View {
                         }
                     )
                     .transition(.scale(scale: 0.8).combined(with: .opacity))
-                    .zIndex(100)
                 }
             }
-            .frame(width: availableWidth, height: gridHeight, alignment: .topLeading)
         }
-        .frame(height: BentoLayoutEngine.calculateGridHeight(
-            cells: cells,
-            rowHeight: rowHeight * scaleFactor,
-            gap: gap * scaleFactor
-        ))
+        .frame(height: BentoLayoutEngine.calculateGridHeight(cells: cells, rowHeight: rowHeight * scaleFactor, gap: gap * scaleFactor))
         .onAppear {
             staggerCellAppearance()
         }
@@ -923,6 +1232,9 @@ struct BentoGridView_Previews: PreviewProvider {
                     iconWeight: nil,
                     backgroundColor: "#E8F4FD",
                     cornerRadius: nil,
+                    backgroundStyle: "gradient",
+                    gradientStyle: "ethereal",
+                    gradientPalette: nil,
                     label: nil,
                     detailOverlay: nil
                 ),
@@ -945,6 +1257,9 @@ struct BentoGridView_Previews: PreviewProvider {
                     iconWeight: nil,
                     backgroundColor: "#F5F5F5",
                     cornerRadius: nil,
+                    backgroundStyle: nil,
+                    gradientStyle: nil,
+                    gradientPalette: nil,
                     label: nil,
                     detailOverlay: nil
                 ),
@@ -967,6 +1282,9 @@ struct BentoGridView_Previews: PreviewProvider {
                     iconWeight: nil,
                     backgroundColor: "#E8FDE8",
                     cornerRadius: nil,
+                    backgroundStyle: "gradient",
+                    gradientStyle: "vivid",
+                    gradientPalette: ["#22C55E", "#10B981"],
                     label: nil,
                     detailOverlay: nil
                 )

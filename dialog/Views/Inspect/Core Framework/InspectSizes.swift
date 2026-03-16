@@ -45,25 +45,13 @@ public enum InspectSizes {
 
         switch normalizedPreset {
         case "preset1":
-            switch mode {
-            case "compact": return (800, 600)
-            case "large": return (1024, 768)
-            default: return (900, 650)  // standard
-            }
+            return (900, 650)
 
         case "preset2":
-            switch mode {
-            case "compact": return (800, 580)
-            case "large": return (1200, 700)
-            default: return (1000, 550)  // standard
-            }
+            return (900, 640)
 
         case "preset3":
-            switch mode {
-            case "compact": return (800, 480)  // We are very narrow - special as we'll show two columns
-            case "large": return (900, 750)
-            default: return (850, 650)  // standard
-            }
+            return (850, 650)
 
         case "preset4":
             // Compact toast installer
@@ -113,7 +101,7 @@ public enum InspectSizes {
         /// Gap between title and subtitle — tight semantic pair (8pt)
         static let titleSubtitle: CGFloat = 8
         /// Gap between content blocks (12pt)
-        static let blockGap: CGFloat = 12
+        static let blockGap: CGFloat = 16
         /// Gap between major sections (20pt)
         static let sectionGap: CGFloat = 20
         /// Top inset from container edge to first element (16pt)

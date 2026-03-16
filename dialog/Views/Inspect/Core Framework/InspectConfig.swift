@@ -91,6 +91,8 @@ struct InspectConfig: Codable {
     let backgroundOpacity: Double?
     let textOverlayColor: String?
     let gradientColors: [String]?
+    let gradientPalette: [String]?  // Hex colors for procedural gradient banner (e.g. ["#007AFF", "#5AC8FA"])
+    let gradientStyle: String?      // Procedural gradient style: "ethereal" | "vivid" | "subtle" (default: "ethereal")
     let button1Text: String?
     let button1Disabled: Bool?
     let button2Text: String?
@@ -128,6 +130,7 @@ struct InspectConfig: Codable {
     let triggerFile: String?                // Custom trigger file path (overrides dev/prod defaults)
     let skipPortal: Bool?                   // Skip portal phase entirely (Preset5) - go directly from intro to outro
     let debugMode: Bool?                    // Debug/testing mode - ignore completion flags, always start from step 1 (preserves form values)
+    let dateStyle: String?                  // Date display format: "relative" | "short" | "medium" | "long" | "iso8601" (default: "medium")
 
     // MARK: - IPC (ignitecli Integration)
     let readinessFile: String?              // Path to write readiness signal JSON (default: "{triggerFile}.ready")
@@ -231,6 +234,15 @@ struct InspectConfig: Codable {
         let backgroundColor: String?            // Background tint color in hex (default: nil/transparent)
         let backgroundOpacity: Double?          // Background opacity 0.0-1.0 (default: 0.2)
         let cornerRadius: Double?               // Corner radius for background (default: 8)
+        let verticalOffset: Double?             // Vertical nudge in points: negative=up, positive=down (default: 0)
+        let introVerticalOffset: Double?        // Vertical nudge for intro phase (default: 0, falls back to verticalOffset if nil)
+        let outroVerticalOffset: Double?        // Vertical nudge for outro phase (default: verticalOffset)
+        let introScale: Double?                 // Scale multiplier for intro screen (default: 1.5)
+        let outroScale: Double?                 // Scale multiplier for outro/summary screen (default: 1.0)
+        let scale: Double?                      // Scale multiplier for main phase (default: 1.0)
+        let showOnIntro: Bool?                  // Show logo during intro phase (default: true)
+        let showOnMain: Bool?                   // Show logo during main phase (default: true)
+        let showOnSummary: Bool?                // Show logo during summary/outro phase (default: true)
     }
 
     // User-initiated deferral configuration (shared across presets)
@@ -466,6 +478,11 @@ struct InspectConfig: Codable {
         let heroBackgroundColor: String?        // Hex color for hero image background area (e.g. "#05164D")
         let skipButtonText: String?             // Secondary button label left of Continue (e.g., "Set Up Later")
         let footerLink: String?                 // Centered privacy/info link text (e.g., "About Privacy...")
+
+        // Media Step Configuration (stepType: "media" — side-by-side text + media split)
+        let mediaSide: String?                  // "left" | "right" — which side the media panel appears (default: "right")
+        let mediaRatio: Double?                 // Media panel width ratio 0.2-0.8 (default: 0.5)
+        let mediaFit: String?                   // "fill" (crop to fill, default) | "fit" (show entire image — for logos)
 
         // Monitoring fields (used by guide steps with filesystem validation)
         let paths: [String]?                    // Filesystem paths to check for existence
@@ -1036,6 +1053,11 @@ struct InspectConfig: Codable {
             let backgroundColor: String?    // Hex color for cell background
             let cornerRadius: Double?       // Corner radius (default: 12)
 
+            // Procedural gradient background (replaces flat backgroundColor when set)
+            let backgroundStyle: String?    // nil (flat color) | "gradient" | "mesh"
+            let gradientStyle: String?      // "ethereal" | "vivid" | "subtle" (default: "ethereal")
+            let gradientPalette: [String]?  // Array of hex colors for gradient palette
+
             // Category label — small-caps text above the title (e.g. "SECURITY", "APPS")
             let label: String?
 
@@ -1055,6 +1077,7 @@ struct InspectConfig: Codable {
         let categoryPrefix: [String: String]? // Map prefixes to category names
         let categoryIcons: [String: String]? // Map category names to icon strings (e.g., "OS Security": "sf=shield.fill,colour1=#007AFF")
         let maxCheckDetails: Int?           // Max check items to display per category (default: 15)
+        let timestampKey: String?           // Key for last-check timestamp (default: tries "lastComplianceCheck", "LastUpdateCheck", "lastCheck", "timestamp")
 
         // MARK: - Auto-Discovery Options
         let autoDiscover: Bool?             // If true, auto-generate items from plist keys
@@ -1219,6 +1242,8 @@ struct InspectConfig: Codable {
         let thumbnailSize: Double?          // Thumbnail dimensions in points (default: 60)
         let allowImageZoom: Bool?           // Allow clicking image to view fullscreen (default: false)
         let wide: Bool?                     // Use wider overlay dimensions (default: false)
+        let detailMedia: String?            // Image/GIF/video path for right-side media panel in inline detail view (falls back to cell imagePath)
+        let detailMediaFit: String?         // "fill" | "fit" (default: "fill") — how media fills the panel
 
         /// Manual initializer for creating configs programmatically (needed for item-specific overlays)
         init(
@@ -1245,7 +1270,9 @@ struct InspectConfig: Codable {
             imageHeight: Double? = nil,
             thumbnailSize: Double? = nil,
             allowImageZoom: Bool? = nil,
-            wide: Bool? = nil
+            wide: Bool? = nil,
+            detailMedia: String? = nil,
+            detailMediaFit: String? = nil
         ) {
             self.enabled = enabled
             self.size = size
@@ -1271,6 +1298,8 @@ struct InspectConfig: Codable {
             self.thumbnailSize = thumbnailSize
             self.allowImageZoom = allowImageZoom
             self.wide = wide
+            self.detailMedia = detailMedia
+            self.detailMediaFit = detailMediaFit
         }
     }
 
@@ -1713,6 +1742,8 @@ struct InspectConfig: Codable {
         backgroundOpacity = try container.decodeIfPresent(Double.self, forKey: .backgroundOpacity)
         textOverlayColor = try container.decodeIfPresent(String.self, forKey: .textOverlayColor)
         gradientColors = try container.decodeIfPresent([String].self, forKey: .gradientColors)
+        gradientPalette = try container.decodeIfPresent([String].self, forKey: .gradientPalette)
+        gradientStyle = try container.decodeIfPresent(String.self, forKey: .gradientStyle)
         button1Text = try container.decodeIfPresent(String.self, forKey: .button1Text)
         button1Disabled = try container.decodeIfPresent(Bool.self, forKey: .button1Disabled)
         finalButtonText = try container.decodeIfPresent(String.self, forKey: .finalButtonText)
@@ -1765,6 +1796,7 @@ struct InspectConfig: Codable {
         triggerFile = try container.decodeIfPresent(String.self, forKey: .triggerFile)
         skipPortal = try container.decodeIfPresent(Bool.self, forKey: .skipPortal)
         debugMode = try container.decodeIfPresent(Bool.self, forKey: .debugMode)
+        dateStyle = try container.decodeIfPresent(String.self, forKey: .dateStyle)
 
         // IPC (ignitecli integration)
         readinessFile = try container.decodeIfPresent(String.self, forKey: .readinessFile)
@@ -1818,7 +1850,7 @@ struct InspectConfig: Codable {
         case width, height, size, scanInterval, cachePaths, cacheExtensions
         case sideMessage, sideInterval, style, liststyle, preset, popupButton
         case highlightColor, secondaryColor, backgroundColor, backgroundImage, backgroundOpacity
-        case textOverlayColor, gradientColors
+        case textOverlayColor, gradientColors, gradientPalette, gradientStyle
         case button1Text = "button1text"
         case button1Disabled = "button1disabled"
         case finalButtonText = "finalButtonText"
@@ -1847,7 +1879,7 @@ struct InspectConfig: Codable {
         // Logo overlay configuration
         case logoConfig
         // Detail overlay, help button, action pipe, trigger file, skip portal, and debug mode configuration
-        case detailOverlay, helpButton, actionPipe, triggerFile, skipPortal, debugMode
+        case detailOverlay, helpButton, actionPipe, triggerFile, skipPortal, debugMode, dateStyle
         // IPC (ignitecli integration)
         case readinessFile, resultFile, eventFile, deferralConfig
         // Log monitoring configuration

@@ -85,7 +85,7 @@ struct PresetIntroScreenView: View {
 
             Spacer()
 
-            // Continue button
+            // Continue button — bottom-right, matching summary composition
             HStack {
                 Spacer()
                 Button(action: onContinue) {
@@ -184,7 +184,7 @@ struct PresetSummaryScreenView: View {
 
             Spacer()
 
-            // Close button
+            // Close button with brand logo overlay (absolute center, matches main phase)
             HStack {
                 Spacer()
                 Button(action: onClose) {
