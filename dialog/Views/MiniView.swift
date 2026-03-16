@@ -90,11 +90,15 @@ struct MiniView: View {
                     }
                     VStack {
                         HStack {
-                            StructuredText(observedData.args.messageOption.value, parser: ColoredMarkdownParser())
-                            //Text(observedData.args.messageOption.value)
-                                .lineLimit(4)
-                                .font(.system(size: 15))
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
+                            if observedData.args.messageOption.value != "none" {
+                                StructuredText(observedData.args.messageOption.value, parser: ColoredMarkdownParser())
+                                //Text(observedData.args.messageOption.value)
+                                    .lineLimit(4)
+                                    .font(.system(size: 15))
+                                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                            } else {
+                                Spacer()
+                            }
                         }
                         Spacer()
                         if appArguments.progressBar.present {
