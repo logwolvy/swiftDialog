@@ -297,6 +297,12 @@ struct dialogApp: App {
                         if #available(macOS 26, *) {
                             window.backgroundColor =  NSColor(Color("oldWindowBackgroundColour"))
                         }
+                        // Inspect mode presets with banners need full-size content view
+                        if appArguments.inspectMode.present {
+                            window.titlebarAppearsTransparent = true
+                            window.titleVisibility = .hidden
+                            window.styleMask.insert(.fullSizeContentView)
+                        }
                     }
                 })
                 .onAppear {

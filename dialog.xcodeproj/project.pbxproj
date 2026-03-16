@@ -93,6 +93,7 @@
 		BA2727D02F22F1350027C4BD /* IconCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2727C82F22F1350027C4BD /* IconCache.swift */; };
 		BA2727D12F22F1350027C4BD /* MediaComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2727C92F22F1350027C4BD /* MediaComponents.swift */; };
 		BA2727D22F22F1350027C4BD /* WallpaperPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2727CB2F22F1350027C4BD /* WallpaperPicker.swift */; };
+		0940615EFBFC244436D747B3 /* ProceduralGradientView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8E519DD87E7826F5EBAC1A /* ProceduralGradientView.swift */; };
 		BA2728012F22F1350027C4BD /* BentoGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2728002F22F1350027C4BD /* BentoGridView.swift */; };
 		BA2728102F22F1350027C4BD /* DeploymentStepViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2728112F22F1350027C4BD /* DeploymentStepViews.swift */; };
 		BA2812002EBA161C00384582 /* InspectPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2811FF2EBA161C00384582 /* InspectPersistence.swift */; };
@@ -119,12 +120,14 @@
 		BAE4DDB3152893222E865858 /* DeferralMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAE50F8E8766AAD7B36AC667 /* DeferralMenuView.swift */; };
 		BAEFDFE12E83FB310017CFC2 /* ErrorHandling.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFD62E83FB310017CFC2 /* ErrorHandling.swift */; };
 		BAEFDFE22E83FB310017CFC2 /* InstallationInfoPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFDF2E83FB310017CFC2 /* InstallationInfoPopoverView.swift */; };
+		BA7TS0012F242B0000ABCDEF /* ThumbnailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA7TS0002F242B0000ABCDEF /* ThumbnailService.swift */; };
 		BAEFDFE52E83FB310017CFC2 /* DialogCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFDB2E83FB310017CFC2 /* DialogCache.swift */; };
 		BAEFDFE72E83FB310017CFC2 /* Preset2.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFCD2E83FB310017CFC2 /* Preset2.swift */; };
 		BAEFDFE82E83FB310017CFC2 /* InspectState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFC82E83FB310017CFC2 /* InspectState.swift */; };
 		BAEFDFE92E83FB310017CFC2 /* InspectSizes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFC72E83FB310017CFC2 /* InspectSizes.swift */; };
 		BAEFDFEA2E83FB310017CFC2 /* InspectConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFC52E83FB310017CFC2 /* InspectConfig.swift */; };
 		BAEFDFEB2E83FB310017CFC2 /* Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFD92E83FB310017CFC2 /* Validation.swift */; };
+		BA4DD5022F242A0000ABCDEF /* DateDisplayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA4DD5012F242A0000ABCDEF /* DateDisplayService.swift */; };
 		BAEFDFEE2E83FB310017CFC2 /* InspectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFC92E83FB310017CFC2 /* InspectView.swift */; };
 		BAEFDFF02E83FB310017CFC2 /* InspectCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFDE2E83FB310017CFC2 /* InspectCoordinator.swift */; };
 		BAEFDFF12E83FB310017CFC2 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFD52E83FB310017CFC2 /* Config.swift */; };
@@ -318,6 +321,7 @@
 		BA2727C92F22F1350027C4BD /* MediaComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaComponents.swift; sourceTree = "<group>"; };
 		BA2727CA2F22F1350027C4BD /* StatusComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusComponents.swift; sourceTree = "<group>"; };
 		BA2727CB2F22F1350027C4BD /* WallpaperPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperPicker.swift; sourceTree = "<group>"; };
+		6E8E519DD87E7826F5EBAC1A /* ProceduralGradientView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProceduralGradientView.swift; sourceTree = "<group>"; };
 		BA2728002F22F1350027C4BD /* BentoGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BentoGridView.swift; sourceTree = "<group>"; };
 		BA2728112F22F1350027C4BD /* DeploymentStepViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeploymentStepViews.swift; sourceTree = "<group>"; };
 		BA2811FF2EBA161C00384582 /* InspectPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectPersistence.swift; sourceTree = "<group>"; };
@@ -355,11 +359,13 @@
 		BAEFDFD72E83FB310017CFC2 /* Monitoring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Monitoring.swift; sourceTree = "<group>"; };
 		BAEFDFD82E83FB310017CFC2 /* Progress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Progress.swift; sourceTree = "<group>"; };
 		BAEFDFD92E83FB310017CFC2 /* Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validation.swift; sourceTree = "<group>"; };
+		BA4DD5012F242A0000ABCDEF /* DateDisplayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateDisplayService.swift; sourceTree = "<group>"; };
 		BAEFDFDB2E83FB310017CFC2 /* DialogCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialogCache.swift; sourceTree = "<group>"; };
 		BAEFDFDC2E83FB310017CFC2 /* FileMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileMonitor.swift; sourceTree = "<group>"; };
 		BAEFDFDD2E83FB310017CFC2 /* ImageResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResolver.swift; sourceTree = "<group>"; };
 		BAEFDFDE2E83FB310017CFC2 /* InspectCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectCoordinator.swift; sourceTree = "<group>"; };
 		BAEFDFDF2E83FB310017CFC2 /* InstallationInfoPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallationInfoPopoverView.swift; sourceTree = "<group>"; };
+		BA7TS0002F242B0000ABCDEF /* ThumbnailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailService.swift; sourceTree = "<group>"; };
 		CA10102F3F10100000001A /* Preset4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preset4.swift; sourceTree = "<group>"; };
 		CA10102F3F10100000002B /* SidebarNavigationModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarNavigationModule.swift; sourceTree = "<group>"; };
 		CA22BB002F390600001367A5 /* PresetCommonHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetCommonHelpers.swift; sourceTree = "<group>"; };
@@ -638,6 +644,7 @@
 				BA2727C92F22F1350027C4BD /* MediaComponents.swift */,
 				BA2727CA2F22F1350027C4BD /* StatusComponents.swift */,
 				BA2727CB2F22F1350027C4BD /* WallpaperPicker.swift */,
+				6E8E519DD87E7826F5EBAC1A /* ProceduralGradientView.swift */,
 				BA2728002F22F1350027C4BD /* BentoGridView.swift */,
 				BA2728112F22F1350027C4BD /* DeploymentStepViews.swift */,
 				E7D7BDEBE83A4272AD647901 /* CarouselStepViews.swift */,
@@ -723,6 +730,7 @@
 				BA3L0C112F9B3A00001367A5 /* LocalizationService.swift */,
 				BA05AF172F1C2B9B001367A5 /* PortalAuthService.swift */,
 				D3676BA7D8D6D91825FA4306 /* LogMonitorService.swift */,
+				BA4DD5012F242A0000ABCDEF /* DateDisplayService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -738,6 +746,7 @@
 				BAEFDFDF2E83FB310017CFC2 /* InstallationInfoPopoverView.swift */,
 				BAD826852EE40001000954F3 /* DetailOverlayView.swift */,
 				BA05AF182F1C2B9B001367A5 /* PortalWebView.swift */,
+				BA7TS0002F242B0000ABCDEF /* ThumbnailService.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -1094,6 +1103,7 @@
 				CA10102F3F10100000002A /* SidebarNavigationModule.swift in Sources */,
 				BAEFDFEA2E83FB310017CFC2 /* InspectConfig.swift in Sources */,
 				BAEFDFEB2E83FB310017CFC2 /* Validation.swift in Sources */,
+				BA4DD5022F242A0000ABCDEF /* DateDisplayService.swift in Sources */,
 				41FCF1F62EA9CFB000E3C47D /* CKMessageView.swift in Sources */,
 				BAEFDFEE2E83FB310017CFC2 /* InspectView.swift in Sources */,
 				BAEFDFF02E83FB310017CFC2 /* InspectCoordinator.swift in Sources */,
@@ -1105,6 +1115,7 @@
 				BAEFDFF22E83FB310017CFC2 /* Preset3.swift in Sources */,
 				BAEFDFF32E83FB310017CFC2 /* Preset1.swift in Sources */,
 				BAEFDFF42E83FB310017CFC2 /* ImageResolver.swift in Sources */,
+				BA7TS0012F242B0000ABCDEF /* ThumbnailService.swift in Sources */,
 				BAEFDFF52E83FB310017CFC2 /* Progress.swift in Sources */,
 				BAEFDFF62E83FB310017CFC2 /* FileMonitor.swift in Sources */,
 				BAEFDFF72E83FB310017CFC2 /* InspectLayoutProtocol.swift in Sources */,
@@ -1171,6 +1182,7 @@
 				BA2727D02F22F1350027C4BD /* IconCache.swift in Sources */,
 				BA2727D12F22F1350027C4BD /* MediaComponents.swift in Sources */,
 				BA2727D22F22F1350027C4BD /* WallpaperPicker.swift in Sources */,
+				0940615EFBFC244436D747B3 /* ProceduralGradientView.swift in Sources */,
 				BA2728012F22F1350027C4BD /* BentoGridView.swift in Sources */,
 				A383B2EE203B064A4679B3F0 /* PresetPhaseViews.swift in Sources */,
 				BA2728102F22F1350027C4BD /* DeploymentStepViews.swift in Sources */,
@@ -1412,7 +1424,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"dialog/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = PWA5E9TQ59;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = D6G4X4D7C9;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = dialog/Info.plist;
@@ -1444,7 +1456,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"dialog/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = PWA5E9TQ59;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = D6G4X4D7C9;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = dialog/Info.plist;
@@ -1553,7 +1565,7 @@
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = PWA5E9TQ59;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = D6G4X4D7C9;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -1579,7 +1591,7 @@
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = PWA5E9TQ59;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = D6G4X4D7C9;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
