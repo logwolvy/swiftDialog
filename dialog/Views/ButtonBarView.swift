@@ -30,13 +30,13 @@ struct ButtonBarView: View {
         if observedDialogContent.args.timerBar.present {
             progressSteps = observedDialogContent.args.timerBar.value.floatValue()
         }
-        
+
     }
 
     var body: some View {
-        
+
         let buttonLayout = (buttonStackStyle ? AnyLayout(VStackLayout()) : AnyLayout(HStackLayout()))
-        
+
         buttonLayout {
             if buttonCentreStyle {
                 Spacer()
@@ -69,13 +69,13 @@ struct ButtonBarView: View {
                     }
                 }
             }
-            
+
             if !buttonStackStyle && !buttonCentreStyle {
                 Spacer()
             }
-            
+
             // Additional Buttons can go here if we implement it
-           
+
             // Define an array of buttons for display
             let buttonArray: [AnyView]   = [
                 // Default Cancel button
@@ -110,12 +110,17 @@ struct ButtonBarView: View {
                           observedData: observedData
                 ))
             ]
-            
+
             // if displaying stack style, reverse the order so the default button is at the bottom
             ForEach(buttonStackStyle ? buttonArray.indices.reversed() : Array(buttonArray.indices), id: \.self) { index in
                 buttonArray[index]
             }
-            
+
+            // Show timer bar for stack/centre styles (default style shows it in the HStack above)
+            if (buttonStackStyle || buttonCentreStyle) && observedData.args.timerBar.present {
+                TimerView(progressSteps: progressSteps, visible: !observedData.args.hideTimerBar.present, observedDialogContent: observedData, stacked: buttonStackStyle)
+            }
+
             // Help Button
             if !buttonStackStyle && !buttonCentreStyle {
                 HelpButton(
@@ -127,13 +132,13 @@ struct ButtonBarView: View {
                     helpSheetButtonText: observedData.args.helpSheetButton.value
                 )
             }
-            
+
             if buttonCentreStyle {
                 Spacer()
             }
-            
+
         }
-        
+
     }
 }
 
@@ -195,7 +200,7 @@ struct HelpButtonStyle: ButtonStyle {
 }
 
 struct NewButton: View {
-    
+
     var label: String
     var isVisible: Bool = true
     @State var isDisabled: Bool = false
@@ -217,15 +222,15 @@ struct NewButton: View {
     var shouldQuit: Bool = false
     var exitCode: Int32 = 0
     @ObservedObject var observedData: DialogUpdatableContent
-    
+
     @State private var symbolColour2: Color = .clear
     @State private var symbolColour3: Color = .clear
-    
+
     let timer = Timer.publish(every: 3.0, on: .main, in: .common).autoconnect()
-    
+
     @FocusState private var isFocused: Bool
     @State private var needsFocusRefresh = false
-    
+
     private func symbolProcessing() {
         // Populate symbol properties from name
         let symbolParts = symbolName.split(separator: ",").map { $0.lowercased() }
@@ -259,12 +264,12 @@ struct NewButton: View {
         }
         needsFocusRefresh = true
     }
-    
+
     var body: some View {
         if isVisible {
             // .top and .bottom force VStack, otherwise HStack
             let symbolLayout = (symbolPosition == .top || symbolPosition == .bottom) ? AnyLayout(VStackLayout()) : AnyLayout(HStackLayout())
-            
+
             Button(action: {
                 buttonAction(action: action, exitCode: exitCode, executeShell: isShellCommand, shouldQuit: shouldQuit, observedObject: observedData)
             }, label: {
