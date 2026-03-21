@@ -17,6 +17,7 @@ var background = BlurWindowController()
 class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
 
     var monitor: PIDMonitor?
+    var windowDragManager: WindowDragManager?
 
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                 didReceive response: UNNotificationResponse,
@@ -65,6 +66,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
             window.title = appArguments.titleOption.value
             window.isMovable = appArguments.movableWindow.present
             window.isMovableByWindowBackground = true
+            if appArguments.movableWindow.present {
+                windowDragManager = WindowDragManager(window: window)
+            }
             if appArguments.showOnAllScreens.present {
                 window.collectionBehavior = [.canJoinAllSpaces]
             }
@@ -109,10 +113,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 
             // order to the front
             window.makeKeyAndOrderFront(self)
-            
+
             // show Dock icon
             NSApp.setActivationPolicy((appArguments.showDockIcon.present || appArguments.dockIcon.present) ? .regular : .accessory)
-            
+
             // Set Dock Icon
             if appArguments.dockIcon.present {
                 let path = appArguments.dockIcon.value
@@ -125,10 +129,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
                 }
                 NSApp.applicationIconImage = image
             }
-            
+
             // Set Dock Badge
             NSApp.dockTile.badgeLabel = appArguments.dockBadge.present ? appArguments.dockBadge.value : nil
-            
+
             // Hide menu items (only visible if dock icon is visible)
             DispatchQueue.main.async {
                 NSApp.mainMenu?.items.removeAll { item in
@@ -265,12 +269,12 @@ struct dialogApp: App {
             activateDialog()
             writeLog("Activated", logLevel: .debug)
         }
-        
+
         // If an audio file is passed in, play it
         if appArguments.playSound.present {
             AudioManager.shared.playAudio(from: appArguments.playSound.value)
         }
-        
+
         hideAllApps(appArguments.hideOtherApps.present)
     }
 
@@ -366,13 +370,13 @@ struct dialogApp: App {
             CommandGroup(replacing: .textFormatting) { } // Text formatting
              */
         }
-        
+
         WindowGroup("Constriction Kt", id: "ConstructionKit") {
             ConstructionKitView(observedDialogContent: observedData)
         }
         .windowResizability(.contentSize)
     }
-    
+
     func showAboutWindow() {
             let aboutView = NSHostingController(rootView: AboutView())
             let window = NSWindow(contentViewController: aboutView)

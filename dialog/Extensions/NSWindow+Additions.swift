@@ -116,7 +116,7 @@ func placeWindow(_ window: NSWindow, size: CGSize?, vertical: NSWindow.Position.
     let main = NSScreen.main!
     let mainFrameWidth = main.frame.width
     let mainFrameHeight = main.frame.height
-    
+
     // visible screen (minus dock and menubar
     let visibleFrame = useFullScreen ? main.frame : main.visibleFrame
     let visibleFrameOriginX = visibleFrame.origin.x
@@ -125,10 +125,10 @@ func placeWindow(_ window: NSWindow, size: CGSize?, vertical: NSWindow.Position.
     let visibleFrameHeight = visibleFrame.height
     let titleBarOffset: CGFloat = (main.frame.height - main.visibleFrame.height) -
                                   (main.visibleFrame.origin.y - main.frame.origin.y)
-    
+
     // Set window Size
     var windowSize: CGSize
-    
+
     if size == nil {
         windowSize = window.frame.size
     } else {
@@ -146,21 +146,21 @@ func placeWindow(_ window: NSWindow, size: CGSize?, vertical: NSWindow.Position.
     writeLog("visible frame origin x = \(visibleFrameOriginX)", logLevel: .debug)
     writeLog("visible frame origin y = \(visibleFrameOriginY)", logLevel: .debug)
     writeLog("visible frame size = \(visibleFrame.size)", logLevel: .debug)
-    
+
 
     // Set Window x and y Position based on size and offset
     let windowX = visibleFrameOriginX + calculateWindowXPos(screenWidth: visibleFrameWidth - windowSize.width, position: horozontal, offset: offset)
     let windowY = visibleFrameOriginY + calculateWindowYPos(screenHeight: visibleFrameHeight - windowSize.height, position: vertical, offset: offset)
     writeLog("window x = \(windowX)", logLevel: .debug)
     writeLog("window y = \(windowY)", logLevel: .debug)
-    
+
     // If x or y positions are off the screen (when using explicit coordinates) re-adjust to fit in the visible frame
     let adjustedWindowX = max(windowX, min(windowX, visibleFrameOriginX + visibleFrameWidth - windowSize.width))
     let adjustedWindowY = max(windowY, min(windowY, visibleFrameOriginY + visibleFrameHeight - windowSize.height))
 
     writeLog("Adjusted window x = \(adjustedWindowX)", logLevel: .debug)
     writeLog("Adjusted window y = \(adjustedWindowY)", logLevel: .debug)
-    
+
     // Set window frame
     let newFrame = NSRect(x: adjustedWindowX, y: adjustedWindowY, width: windowSize.width, height: windowSize.height)
     window.setFrame(newFrame, display: true)
@@ -195,5 +195,96 @@ func windowPosition(_ position: String) -> (vertical: NSWindow.Position.Vertical
         return (vertical: .center, horozontal: .center)
     default:
         return (vertical: .center, horozontal: .center)
+    }
+}
+
+/// Enables window dragging from interactive controls (e.g. buttons) that normally
+/// block `isMovableByWindowBackground`. Uses a local event monitor to detect
+/// click-and-drag on controls and moves the window, while preserving normal
+/// click behaviour and scroll view interaction.
+class WindowDragManager {
+    private var monitor: Any?
+    private weak var window: NSWindow?
+    private var initialMouseLocation: NSPoint?
+    private var initialWindowOrigin: NSPoint?
+    private var isDragging = false
+    private var isTracking = false
+
+    init(window: NSWindow) {
+        self.window = window
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self] event in
+            self?.handleEvent(event) ?? event
+        }
+    }
+
+    private func handleEvent(_ event: NSEvent) -> NSEvent? {
+        guard let window = window else { return event }
+
+        switch event.type {
+        case .leftMouseDown:
+            guard event.window === window else { return event }
+
+            // Check what view is under the click
+            let hitView = window.contentView?.hitTest(event.locationInWindow)
+
+            // If the view already allows background dragging, let the standard
+            // isMovableByWindowBackground mechanism handle it.
+            if hitView?.mouseDownCanMoveWindow != false { return event }
+
+            // Don't intercept drags inside scroll views — they should scroll.
+            var ancestor: NSView? = hitView
+            while let view = ancestor {
+                if view is NSScrollView { return event }
+                ancestor = view.superview
+            }
+
+            // Interactive non-scroll area (e.g. a button) — start tracking.
+            initialMouseLocation = NSEvent.mouseLocation
+            initialWindowOrigin = window.frame.origin
+            isDragging = false
+            isTracking = true
+            return event  // pass through so the control gets its mouseDown
+
+        case .leftMouseDragged:
+            guard isTracking,
+                  let initialMouse = initialMouseLocation,
+                  let initialOrigin = initialWindowOrigin else { return event }
+
+            let currentMouse = NSEvent.mouseLocation
+            let dx = currentMouse.x - initialMouse.x
+            let dy = currentMouse.y - initialMouse.y
+
+            if !isDragging && (dx * dx + dy * dy > 9) { // 3-point threshold
+                isDragging = true
+            }
+
+            if isDragging {
+                window.setFrameOrigin(NSPoint(
+                    x: initialOrigin.x + dx,
+                    y: initialOrigin.y + dy
+                ))
+                return nil  // consume so the control doesn't act on the drag
+            }
+            return event
+
+        case .leftMouseUp:
+            guard isTracking else { return event }
+            let wasDragging = isDragging
+            initialMouseLocation = nil
+            initialWindowOrigin = nil
+            isDragging = false
+            isTracking = false
+            // If we were dragging, swallow the mouseUp so the button doesn't fire.
+            return wasDragging ? nil : event
+
+        default:
+            return event
+        }
+    }
+
+    deinit {
+        if let monitor = monitor {
+            NSEvent.removeMonitor(monitor)
+        }
     }
 }
