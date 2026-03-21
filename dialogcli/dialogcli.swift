@@ -21,8 +21,8 @@ struct DialogLauncher: ParsableCommand {
     static let process = Process()
     
     // Command-line option for specifying the path to the command file
-    @Option(name: .long, help: "Path to the command file")
-    var commandfile: String?
+    //@Option(name: .long, help: "Path to the command file")
+    //var commandfile: String?
     
     // Used to create the `/usr/local/bin/dialog` symlink
     @Flag(help: .hidden)
@@ -109,8 +109,19 @@ struct DialogLauncher: ParsableCommand {
             throw ExitCode(0)
         }
 
-        // Use the specified command file path or default one
-        let commandFilePath = commandfile ?? defaultCommandFile
+        // loop through looking for the command file path
+        var commandFilePath = defaultCommandFile
+        var index = 0
+        while index < passthroughArgs.count {
+            if passthroughArgs[index] == "--commandfile" {
+                // Next argument should be the path
+                if index + 1 < passthroughArgs.count && !passthroughArgs[index + 1].hasPrefix("--") {
+                    commandFilePath = passthroughArgs[index + 1]
+                    break
+                }
+            }
+            index+=1
+        }
 
         // Check if commandfile is a symlink and abort if found
         if FileManager.default.destinationOfSymbolicLinkSafe(atPath: commandFilePath) != nil {
@@ -128,13 +139,28 @@ struct DialogLauncher: ParsableCommand {
         // Get the current user info (username and UID)
         let (user, userUID) = getConsoleUserInfo()
 
-        // Ensure the user is valid
-        guard !user.isEmpty && userUID != 0 else {
+        // Check if --loginwindow flag is present
+        let hasLoginwindowFlag = passthroughArgs.contains("--loginwindow")
+
+        // Ensure the user is valid, unless using --loginwindow at the loginwindow (console user is root)
+        guard (!user.isEmpty && userUID != 0) || hasLoginwindowFlag else {
             fputs("ERROR: Unable to determine current GUI user\n", stderr)
             throw ExitCode(1)
         }
+        
+        // Filter out empty arguments
+        let filteredArgs = passthroughArgs.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        
+        // Re-order arguments
+        let reorderedArgs = ["--pid", "\(myPid)", "--commandfile", "\(commandFilePath)"]+reorderArguments(filteredArgs)
 
-        let reorderedArgs = ["--pid", "\(myPid)"]+reorderArguments(passthroughArgs)
+        // If at loginwindow (root user with --loginwindow flag), run Dialog directly as root
+        if hasLoginwindowFlag && userUID == 0 {
+            let result = runCommand(binary: dialogBinary, args: reorderedArgs)
+            print(result.stdout, terminator: "")
+            fputs(result.stderr, stderr)
+            throw ExitCode(result.status)
+        }
 
         // Run as root if necessary, otherwise directly run the binary
         if getuid() == 0 {

@@ -303,7 +303,7 @@ class FileReader {
                 }
                 observedData.args.mainImage.present = false
                 observedData.args.mainImageCaption.present = false
-                observedData.args.listItem.present = false
+                // observedData.args.listItem.present = false
 
             // Message Position
             case "alignment:":
@@ -533,13 +533,38 @@ class FileReader {
             // hide
             case "hide:":
                 writeToLog("hiding windows")
+                if observedData.args.blurScreen.present {
+                    blurredScreen.hide()
+                }
                 NSApp.hide(self)
-
-            // hide
+                
+            // show
             case "show:":
                 writeToLog("Showing windows")
+                if observedData.args.blurScreen.present {
+                    blurredScreen.show()
+                }
                 NSApp.unhide(self)
                 activateDialog()
+
+            // minimize
+            case "miniaturize:":
+                writeToLog("minimizing windows")
+                if observedData.args.blurScreen.present {
+                    blurredScreen.hide()
+                }
+                NSApp.keyWindow?.setIsMiniaturized(true)
+
+            // deminimize
+            case "deminiaturize:":
+                writeToLog("deminimizing windows")
+                if observedData.args.blurScreen.present {
+                    blurredScreen.show()
+                }
+                // Find all minimized windows, ordered by recentness (0 is frontmost)
+                let minimizedWindows = NSApp.windows.filter { $0.isMiniaturized }
+                // Deminimize the first one found (most recent)
+                minimizedWindows.first?.deminiaturize(nil)
 
             // icon alpha
             case "\(observedData.args.iconAlpha.long):":
@@ -586,6 +611,46 @@ class FileReader {
                         observedData.args.webcontent.present = true
                     }
                 }
+                
+            // show dock icon
+            case "\(observedData.args.showDockIcon.long):":
+                if ["enable", "true", "1"].contains(argument) {
+                    NSApp.setActivationPolicy(.regular)
+                } else {
+                    NSApp.setActivationPolicy(.accessory)
+                }
+                
+            // dock icon badge
+            case "\(observedData.args.dockBadge.long):":
+                if ["none", "nil", "remove"].contains(argument) {
+                    NSApp.dockTile.badgeLabel = nil
+                } else {
+                    NSApp.dockTile.badgeLabel = argument
+                }
+                
+            // dock icon image
+            case "\(observedData.args.dockIcon.long):":
+                if ["none", "nil", "default"].contains(argument) {
+                    NSApp.applicationIconImage = nil
+                } else {
+                    let path = argument
+                    var image = NSImage()
+                    switch path {
+                    case _ where ["app", "prefPane", "framework"].contains(path.split(separator: ".").last):
+                        image =  getAppIcon(appPath: argument)
+                    default:
+                        image = getImageFromPath(fileImagePath: argument, returnErrorImage: true)
+                    }
+                    NSApp.applicationIconImage = image
+                }
+                
+            // dock icon bounce
+            case "bounce:":
+                if argument == "critical" {
+                    NSApp.requestUserAttention(.criticalRequest)
+                } else {
+                    NSApp.requestUserAttention(.informationalRequest)
+                }
 
             // quit
             case "quit:":
@@ -621,6 +686,10 @@ final class DialogUpdatableContent: ObservableObject {
     @Published var iconAlpha: Double
 
     @Published var imageArray: [MainImage]
+    @Published var textFieldArray: [TextFieldState]
+    @Published var dropdownArray: [DropDownItems]
+    @Published var observedUserInputState: UserInputState
+    
 
     @Published var listItemsArray: [ListItems]
     @Published var listItemUpdateRow: Int
@@ -664,8 +733,11 @@ final class DialogUpdatableContent: ObservableObject {
         iconAlpha = Double(appArguments.iconAlpha.value) ?? 1.0
 
         imageArray = appvars.imageArray
-
+        textFieldArray = userInputState.textFields
+        dropdownArray = userInputState.dropdownItems
         listItemsArray = userInputState.listItems
+        
+        observedUserInputState = userInputState
 
         requiredFieldsPresent = false
 

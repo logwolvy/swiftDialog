@@ -64,7 +64,7 @@ struct ContentView: View {
                 Spacer()
 
                 // Buttons
-                ButtonView(observedDialogContent: observedData)
+                ButtonBarView(observedDialogContent: observedData)
                     .padding(.leading, appDefaults.sidePadding)
                     .padding(.trailing, appDefaults.sidePadding)
                     .padding(.bottom, appDefaults.bottomPadding)
@@ -81,6 +81,7 @@ struct ContentView: View {
                             .symbolRenderingMode(.monochrome)
                             .foregroundColor(.yellow)
                             .opacity(0.5)
+                            .padding(5)
                     }
                     Spacer()
                 }

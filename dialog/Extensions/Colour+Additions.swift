@@ -107,31 +107,7 @@ extension Color {
 extension Color {
     static let background = Color(NSColor.windowBackgroundColor)
     static let secondaryBackground = Color(NSColor.underPageBackgroundColor)
-    static let tertiaryBackground = Color(NSColor.controlBackgroundColor)
-
-    static let code = Color(
-        light: Color(rgba: 0xdc1c_50ff), dark: Color(rgba: 0xdb58_7bff)
-    )
-    static let text = Color(
-        light: Color(rgba: 0x0606_06ff), dark: Color(rgba: 0xfbfb_fcff)
-    )
-    static let secondaryText = Color(
-        light: Color(rgba: 0x6b6e_7bff), dark: Color(rgba: 0x9294_a0ff)
-    )
-    static let tertiaryText = Color(
-        light: Color(rgba: 0x6b6e_7bff), dark: Color(rgba: 0x6d70_7dff)
-    )
-    static let link = Color(
-        light: Color(rgba: 0x2c65_cfff), dark: Color(rgba: 0x4c8e_f8ff)
-    )
-    static let border = Color(
-        light: Color(rgba: 0xe4e4_e8ff), dark: Color(rgba: 0x4244_4eff)
-    )
-    static let divider = Color(
-        light: Color(rgba: 0xd0d0_d3ff), dark: Color(rgba: 0x3334_38ff)
-    )
-    static let checkbox = Color(rgba: 0xb9b9_bbff)
-    static let checkboxBackground = Color(rgba: 0xeeee_efff)
+    static let tertiaryBackground = Color(NSColor.controlBackgroundColor)    
 }
 
 extension Color {
@@ -143,5 +119,42 @@ extension Color {
 
         let lum = 0.2126 * red + 0.7152 * green + 0.0722 * blue
         return lum < 0.5
+    }
+
+    /// Relative luminance (0 = black, 1 = white) per WCAG 2.0
+    var luminance: CGFloat {
+        let components = self.cgColor?.components
+        let r: CGFloat = components?[0] ?? 0.0
+        let g: CGFloat = components?[1] ?? 0.0
+        let b: CGFloat = components?[2] ?? 0.0
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    }
+
+    /// Lighten the color by a factor (0 = unchanged, 1 = white).
+    /// Preserves hue by mixing toward white in RGB space.
+    func lightened(by factor: CGFloat) -> Color {
+        let components = self.cgColor?.components
+        let r: CGFloat = components?[0] ?? 0.0
+        let g: CGFloat = components?[1] ?? 0.0
+        let b: CGFloat = components?[2] ?? 0.0
+        return Color(
+            .sRGB,
+            red: Double(r + (1 - r) * factor),
+            green: Double(g + (1 - g) * factor),
+            blue: Double(b + (1 - b) * factor)
+        )
+    }
+
+    /// Returns a version of this color that's guaranteed visible on dark backgrounds.
+    /// Very dark brand colors (luminance < 0.15) get lightened so they remain legible
+    /// on macOS dark mode surfaces. Brighter colors pass through unchanged.
+    var darkModeAdapted: Color {
+        let lum = self.luminance
+        if lum < 0.08 {
+            return self.lightened(by: 0.55) // very dark → significant lift
+        } else if lum < 0.15 {
+            return self.lightened(by: 0.40) // dark → moderate lift
+        }
+        return self
     }
 }

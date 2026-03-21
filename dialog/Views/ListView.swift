@@ -26,6 +26,7 @@ struct StatusImage: View {
             .scaledToFit()
             .frame(width: statusSize, height: statusSize)
             .transition(AnyTransition.opacity.animation(.easeInOut(duration: 0.2)))
+            .contentTransition(.symbolEffect(.replace))
     }
 }
 
@@ -34,7 +35,9 @@ struct ListView: View {
     @ObservedObject var observedData: DialogUpdatableContent
 
     @State var isHovering = false
-
+    //@State private var selection = Set<String>()
+    @State private var selection = Set<Int>()
+    
     var rowHeight: CGFloat
     var rowStatusHeight: CGFloat
     var rowFontSize: CGFloat
@@ -83,9 +86,20 @@ struct ListView: View {
             let _ = writeLog("Displaying listitems")
             ScrollViewReader { proxy in
                 VStack {
-                    List(0..<userInputState.listItems.count, id: \.self) {index in
+                    List(0..<userInputState.listItems.count, id: \.self, selection: $selection) {index in
                         Button(action: {
-                            handleClick(userInputState.listItems[index].action)
+                            if observedData.args.listSelectionEnabled.present {
+                                if selection.contains(index) {
+                                    selection.remove(index)
+                                    userInputState.listItems[index].selected = false
+                                } else {
+                                    selection.insert(index)
+                                    userInputState.listItems[index].selected = true
+                                }
+                            } else {
+                                selection.remove(index)
+                                handleClick(userInputState.listItems[index].action)
+                            }
                         }) {
                             VStack {
                                 HStack {
@@ -120,30 +134,7 @@ struct ListView: View {
                                                 .font(.system(size: rowFontSize))
                                                 .transition(AnyTransition.opacity.animation(.easeInOut(duration: 0.2)))
                                         }
-
-                                        switch userInputState.listItems[index].statusIcon {
-                                        case "progress":
-                                            ProgressView("", value: userInputState.listItems[index].progress, total: 100)
-                                                .progressViewStyle(CircularPercentageProgressViewStyle())
-                                                .frame(width: rowStatusHeight, height: rowStatusHeight-5)
-                                                .transition(AnyTransition.opacity.animation(.easeInOut(duration: 0.2)))
-                                        case "wait":
-                                            ProgressView()
-                                                .progressViewStyle(.circular)
-                                                .scaleEffect(0.8, anchor: .trailing)
-                                                .frame(height: rowStatusHeight)
-                                                .transition(AnyTransition.opacity.animation(.easeInOut(duration: 0.2)))
-                                        case "success":
-                                            StatusImage(name: "checkmark.circle.fill", colour: .green, size: rowStatusHeight)
-                                        case "fail":
-                                            StatusImage(name: "xmark.circle.fill", colour: .red, size: rowStatusHeight)
-                                        case "pending":
-                                            StatusImage(name: "ellipsis.circle.fill", colour: .gray, size: rowStatusHeight)
-                                        case "error":
-                                            StatusImage(name: "exclamationmark.circle.fill", colour: .yellow, size: rowStatusHeight)
-                                        default:
-                                            EmptyView()
-                                        }
+                                        StatusView(status: userInputState.listItems[index].statusIcon, size: rowStatusHeight, progress: userInputState.listItems[index].progress)
                                     }
                                 }
                                 .frame(maxHeight: rowHeight)
@@ -161,9 +152,14 @@ struct ListView: View {
                             }
                         }
                         .buttonStyle(PlainButtonStyle())
+                        //.listRowBackground(
+                        //    selection.contains(index) ? Color.accentColor.opacity(0.3) : Color.clear
+                        //)
                     }
                     .background(Color("listBackgroundColour"))
-                    .listStyle(SidebarListStyle())
+                    .listStyle(.sidebar)
+                    //.listStyle(.plain)
+                    
                 }
                 .onChange(of: observedData.listItemUpdateRow) {
                     DispatchQueue.main.async {
@@ -173,6 +169,44 @@ struct ListView: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: clipRadius))
+            }
+        }
+    }
+}
+
+struct StatusView: View {
+    
+    var status: String
+    var size: CGFloat
+    var progress: CGFloat = 0
+    
+    var body: some View {
+        Group {
+            switch status {
+            case "progress":
+                ProgressView("", value: progress, total: 100)
+                    .progressViewStyle(CircularPercentageProgressViewStyle())
+                    .frame(width: size, height: size-5)
+            case "wait":
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .scaleEffect(0.8, anchor: .trailing)
+                    .frame(height: size)
+            case "success":
+                StatusImage(name: "checkmark.circle.fill", colour: .green, size: size)
+            case "fail":
+                StatusImage(name: "xmark.circle.fill", colour: .red, size: size)
+            case "pending":
+                StatusImage(name: "ellipsis.circle.fill", colour: .gray, size: size)
+            case "error":
+                StatusImage(name: "exclamationmark.circle.fill", colour: .yellow, size: size)
+            case "":
+                EmptyView()
+            default:
+                let statusParts = status.split(separator: "-")
+                let name = statusParts.first?.lowercased() ?? ""
+                let colour = statusParts.count > 1 ? Color(argument: statusParts[1].lowercased()) : .primary
+                StatusImage(name: name, colour: colour, size: size)
             }
         }
     }

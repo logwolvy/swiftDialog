@@ -95,7 +95,7 @@ class DialogCache {
             let filename = (key as NSString).lastPathComponent
             var fileSize: Int64 = 0
             var lastModified = Date()
-            var checksum: String? = nil
+            var checksum: String?
 
             if let attributes = try? FileManager.default.attributesOfItem(atPath: resolvedPath) {
                 fileSize = attributes[.size] as? Int64 ?? 0
@@ -196,12 +196,9 @@ class DialogCache {
         queue.async(flags: .barrier) { [weak self] in
             guard let self = self else { return }
 
-            var invalidKeys: [String] = []
-            for (key, entry) in self.entries {
-                if !FileManager.default.fileExists(atPath: entry.resolvedPath) {
-                    invalidKeys.append(key)
-                }
-            }
+            let invalidKeys = self.entries
+                .filter { !FileManager.default.fileExists(atPath: $0.value.resolvedPath) }
+                .map { $0.key }
 
             for key in invalidKeys {
                 self.entries.removeValue(forKey: key)

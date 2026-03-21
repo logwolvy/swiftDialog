@@ -23,15 +23,16 @@ struct AppDefaults {
                                                       "right": .trailing,
                                                       "centre": .center,
                                                       "center": .center]
-    let button1Default                  = String("button-ok".localized)
-    let button2Default                  = String("button-cancel".localized)
-    let buttonInfoDefault               = String("button-more-info".localized)
+    let button1Default                  = String("OK".localized)
+    let button2Default                  = String("Cancel".localized)
+    let buttonInfoDefault               = String("More Information".localized)
     let buttonInfoActionDefault         = String("")
     let buttonSizeStates: [String: ControlSize] = ["mini": .mini,
                                                       "small": .small,
                                                       "regular": .regular,
                                                       "large": .large]
     let buttonSize                      = String("regular")
+    //let buttonFontSize: CGFloat?
 
 
     // Content padding
@@ -94,8 +95,9 @@ struct AppVariables {
     // work out how to define a default width button that does what you tell it to. in the meantime, diry hack with spaces
     var button1DefaultAction            = KeyboardShortcut.defaultAction
     var button2DefaultAction            = KeyboardShortcut.cancelAction
+    var buttonTextSize: CGFloat?
 
-    var helpButtonHoverText             = String("help-hover".localized)
+    var helpButtonHoverText             = String("Click for additional information".localized)
 
     // Window Sizes
     var windowWidth                     = CGFloat(820)      // set default dialog width
@@ -136,6 +138,7 @@ struct AppVariables {
     var titleFontWeight                 = Font.Weight.bold
     var titleFontName                   = ""
     var titleFontShadow                 = Bool(false)
+    var titleFontAlignment              = ""
     var messageFontSize                 = CGFloat(20)
     var messageFontColour               = Color.primary
     var messageFontWeight               = Font.Weight.regular

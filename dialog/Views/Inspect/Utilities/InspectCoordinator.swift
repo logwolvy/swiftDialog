@@ -36,7 +36,6 @@ class InspectStateCoordinator: ObservableObject {
     // MARK: - Services (Composition over Inheritance)
 
     private let configurationService = Config()
-    private let validationService = Validation()
     private let monitoringService = Monitoring()
     private let progressService: Progress
 
@@ -166,7 +165,8 @@ class InspectStateCoordinator: ObservableObject {
         // Start monitoring service
         monitoringService.startMonitoring(
             items: items,
-            cachePaths: config.cachePaths ?? []
+            cachePaths: config.cachePaths ?? [],
+            cacheExtensions: config.resolvedCacheExtensions
         )
 
         // Simulate downloading state for pending items
@@ -302,13 +302,15 @@ class InspectStateCoordinator: ObservableObject {
 
     // MARK: - Validation
 
+    @MainActor
     func validatePlistItem(_ item: InspectConfig.ItemConfig) -> Bool {
         let request = ValidationRequest(
             item: item,
-            plistSources: plistSources
+            plistSources: plistSources,
+            basePath: uiConfiguration.iconBasePath
         )
 
-        let result = validationService.validateItem(request)
+        let result = Validation.shared.validateItem(request)
         plistValidationResults[item.id] = result.isValid
 
         // Update progress service based on validation result
@@ -324,17 +326,22 @@ class InspectStateCoordinator: ObservableObject {
     }
 
     func validateAllItems() {
-        for item in items {
-            _ = validatePlistItem(item)
+        Task { @MainActor in
+            for item in items {
+                _ = validatePlistItem(item)
+            }
+            writeLog("InspectStateCoordinator: Validated \(items.count) items", logLevel: .debug)
         }
-        writeLog("InspectStateCoordinator: Validated \(items.count) items", logLevel: .debug)
     }
 
+    @MainActor
     func getPlistValueForDisplay(item: InspectConfig.ItemConfig) -> String? {
         guard let plistKey = item.plistKey else { return nil }
 
+        // Use validation service to get the actual plist value
+        // Pass iconBasePath for relative path resolution
         for path in item.paths {
-            if let value = validationService.getPlistValue(at: path, key: plistKey) {
+            if let value = Validation.shared.getPlistValue(at: path, key: plistKey, basePath: uiConfiguration.iconBasePath) {
                 return value
             }
         }

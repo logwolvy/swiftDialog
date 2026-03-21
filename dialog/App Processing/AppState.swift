@@ -94,7 +94,8 @@ struct Icons {
     var value: String
 }
 
-struct DropDownItems {
+struct DropDownItems: Equatable, Identifiable {
+    var id = UUID()
     var title: String
     var name: String = ""
     var values: [String]
@@ -109,20 +110,36 @@ struct CheckBoxes {
     var label: String
     var name: String = ""
     var icon: String = ""
+    var sfSymbol: String = ""
+    var sfColour: String = ""
+    var sfPicker: Bool = false
     var checked: Bool = false
     var disabled: Bool = false
     var enablesButton1: Bool = false
+    var dictionary: [String: Any] {
+            return ["label": label,
+                    "name": name,
+                    "icon": icon,
+                    "checked": checked,
+                    "disabled": disabled,
+                    "enablesButton1": enablesButton1
+            ]
+        }
 }
 
 struct ListItems: Codable {
     var title: String
     var subTitle: String = ""
     var icon: String = ""
+    var sfSymbol: String = ""
+    var sfColour: String = ""
+    var sfPicker: Bool = false
     var iconAlpha: CGFloat = 1
     var statusText: String = ""
     var statusIcon: String = ""
     var progress: CGFloat = 0
     var action: String = ""
+    var selected: Bool = false
     var dictionary: [String: Any] {
             return ["title": title,
                     "subtitle": subTitle,

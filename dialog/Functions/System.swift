@@ -121,7 +121,7 @@ func quitDialog(exitCode: Int32, exitMessage: String? = "", observedObject: Dial
                 if exitCode == 0 {
                     if textfieldRequired && textfieldValue == "" { // && userInputState.textFields[index].regex.isEmpty {
                         NSSound.beep()
-                        requiredString += "  - \"\(textfieldTitle)\" \("is-required".localized)<br>"
+                        requiredString += "  - \"\(textfieldTitle)\" \("is required".localized)<br>"
                         userInputState.textFields[index].requiredTextfieldHighlight = Color.red
                         dontQuit = true
                         writeLog("Required text field \(textfieldName) has no value")
@@ -137,7 +137,7 @@ func quitDialog(exitCode: Int32, exitMessage: String? = "", observedObject: Dial
                         writeLog("Textfield \(textfieldTitle) value \(textfieldValue) does not meet regex requirements \(String(describing: textField.regex))")
                     } else if textfieldValidation && textFieldValidationValue != textfieldValue {
                         NSSound.beep()
-                        requiredString += "  - \"\(textfieldTitle)\" \("confirmation-failed".localized)<br>"
+                        requiredString += "  - \"\(textfieldTitle)\" \("confirmation failed  <br>values do not match".localized)<br>"
                         userInputState.textFields[index].requiredTextfieldHighlight = Color.red
                         dontQuit = true
                         writeLog("Text field \(textfieldName) confirmation failed")
@@ -177,7 +177,7 @@ func quitDialog(exitCode: Int32, exitMessage: String? = "", observedObject: Dial
 
                 if exitCode == 0 && dropdownItemRequired && dropdownItemSelectedValue == "" {
                     NSSound.beep()
-                    requiredString += "  - \"\(dropdownItem.title)\" \("is-required".localized)<br>"
+                    requiredString += "  - \"\(dropdownItem.title)\" \("is required".localized)<br>"
                     userInputState.dropdownItems[index].requiredfieldHighlight = Color.red
                     dontQuit = true
                     writeLog("Required select item \(dropdownItem.title) has no value")
@@ -186,6 +186,13 @@ func quitDialog(exitCode: Int32, exitMessage: String? = "", observedObject: Dial
                     outputArray.append("\"\(dropdownItemName)\" index : \"\(dropdownItemValues.firstIndex(of: dropdownItemSelectedValue) ?? -1)\"")
                     json[dropdownItemName] = ["selectedValue": dropdownItemSelectedValue, "selectedIndex": dropdownItemValues.firstIndex(of: dropdownItemSelectedValue) ?? -1]
                 }
+            }
+        }
+        
+        if observedObject?.args.listSelectionEnabled.present ?? false {
+            for item in userInputState.listItems {
+                outputArray.append("\"\(item.title)\" : \"\(item.selected)\"")
+                json[item.title].bool = item.selected
             }
         }
 
@@ -217,6 +224,10 @@ func quitDialog(exitCode: Int32, exitMessage: String? = "", observedObject: Dial
             }
         }
     }
+    if appArguments.hideOtherApps.present {
+        NSApp.unhideAllApplications(nil)
+    }
+    
     exit(exitCode)
 }
 
@@ -253,7 +264,13 @@ func getVideoStreamingURLFromID(videoid: String, autoplay: Bool = false) -> Stri
     case "youtubeid":
         writeLog("Youtube ID detected")
         let youTubeID = videoid.replacingOccurrences(of: "youtubeid=", with: "")
-        let youtubeURL = "https://www.youtube.com/embed/\(youTubeID)?autoplay=\(autoplay ? 1 : 0)&controls=0&showinfo=0"
+        // Use youtube-nocookie.com for better embed compatibility
+        // Include enablejsapi and playsinline for proper WKWebView support
+        var params = "enablejsapi=1&playsinline=1&rel=0"
+        if autoplay {
+            params += "&autoplay=1&mute=1"  // Autoplay requires mute
+        }
+        let youtubeURL = "https://www.youtube-nocookie.com/embed/\(youTubeID)?\(params)"
         fullURL = youtubeURL
     case "vimeoid":
         let vimeoID = videoid.replacingOccurrences(of: "vimeoid=", with: "")
@@ -377,5 +394,24 @@ func activateDialog() {
             window.makeKeyAndOrderFront(nil)
             window.orderFrontRegardless()
         }
+    }
+}
+
+func hideAllApps(_ hideApps: Bool = false) {
+    if !hideApps {
+        return
+    }
+    
+    NSApp.hideOtherApplications(nil)
+    
+    // Get parent process ID
+    let parentPID = getppid()
+    
+    // Find and hide the parent application
+    let runningApps = NSWorkspace.shared.runningApplications
+    if let parentApp = runningApps.first(where: {
+        $0.processIdentifier == parentPID
+    }) {
+        parentApp.hide()
     }
 }

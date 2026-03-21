@@ -29,6 +29,8 @@ extension InspectLayoutProtocol {
         switch sizeMode {
         case "compact": return 0.85
         case "large": return 1.15
+        case "assistant": return 0.95  // Slightly scaled down from standard (1024 vs 1100 width)
+        case "setup": return 0.80         // Apple Setup Assistant (800×600)
         default: return 1.0  // standard
         }
     }
@@ -93,13 +95,60 @@ extension InspectLayoutProtocol {
         }
     }
     
+    /// Returns the display text for an item's current status
+    /// 
+    /// Uses a three-tier customization system:
+    /// 1. Item-specific status text (highest priority)
+    /// 2. Global UILabels configuration 
+    /// 3. Default hardcoded text (fallback)
+    ///
+    /// This allows for both global customization (e.g., changing "Installed" to "Complete" app-wide)
+    /// and item-specific customization (e.g., different terminology for different workflow types)
     func getItemStatus(for item: InspectConfig.ItemConfig) -> String {
         if inspectState.completedItems.contains(item.id) {
-            return "Installed"
+            // Priority: log monitor (completion messages only) > item-specific > global UILabels > default
+            // Skip stale "Installing..." / "Downloading..." statuses left over from the install phase
+            if let logStatus = inspectState.logMonitorStatuses[item.id],
+               logStatus.hasPrefix("Completed") || logStatus.hasPrefix("Installed") {
+                return logStatus
+            } else if let customStatus = item.completedStatus {
+                return customStatus
+            } else if let globalStatus = inspectState.config?.uiLabels?.completedStatus {
+                return globalStatus
+            } else {
+                return "Completed"
+            }
+        } else if inspectState.failedItems.contains(item.id) {
+            // Priority: log monitor > global UILabels > default
+            if let logStatus = inspectState.logMonitorStatuses[item.id] {
+                return logStatus
+            } else if let globalStatus = inspectState.config?.uiLabels?.failedStatus {
+                return globalStatus
+            } else {
+                return "Failed"
+            }
         } else if inspectState.downloadingItems.contains(item.id) {
-            return "Installing..."
+            // Priority: log monitor > item-specific > global UILabels > default
+            if let logStatus = inspectState.logMonitorStatuses[item.id] {
+                return logStatus
+            } else if let customStatus = item.downloadingStatus {
+                return customStatus
+            } else if let globalStatus = inspectState.config?.uiLabels?.downloadingStatus {
+                return globalStatus
+            } else {
+                return "Installing..."
+            }
         } else {
-            return "Waiting"
+            // Pending: log monitor > item-specific > global UILabels > default
+            if let logStatus = inspectState.logMonitorStatuses[item.id] {
+                return logStatus
+            } else if let customStatus = item.pendingStatus {
+                return customStatus
+            } else if let globalStatus = inspectState.config?.uiLabels?.pendingStatus {
+                return globalStatus
+            } else {
+                return "Waiting"
+            }
         }
     }
     
@@ -150,7 +199,7 @@ extension InspectLayoutProtocol {
         } else {
             Image(systemName: "app.fill")
                 .font(.system(size: size * 0.75))
-                .foregroundColor(.blue)
+                .foregroundStyle(.blue)
                 .frame(width: size, height: size)
         }
          */
@@ -160,7 +209,7 @@ extension InspectLayoutProtocol {
     func statusIndicator(for item: InspectConfig.ItemConfig) -> some View {
         if inspectState.completedItems.contains(item.id) {
             Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.green)
+                .foregroundStyle(.green)
                 .font(.system(size: 20 * scaleFactor))
         } else if inspectState.downloadingItems.contains(item.id) {
             ProgressView()
@@ -185,11 +234,11 @@ extension InspectLayoutProtocol {
             VStack(alignment: .leading, spacing: 2 * scaleFactor) {
                 Text(item.displayName)
                     .font(.system(size: 14 * scaleFactor, weight: .medium))
-                    .foregroundColor(.primary)
+                    .foregroundStyle(.primary)
 
                 Text(getItemStatus(for: item))
                     .font(.system(size: 12 * scaleFactor))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
             Spacer()
@@ -211,7 +260,7 @@ extension InspectLayoutProtocol {
 
                 Text("\(inspectState.completedItems.count) of \(inspectState.items.count) completed")
                     .font(.system(size: 11 * scaleFactor))
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
         }
     }

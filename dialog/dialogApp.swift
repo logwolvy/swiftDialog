@@ -109,6 +109,32 @@ class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDele
 
             // order to the front
             window.makeKeyAndOrderFront(self)
+            
+            // show Dock icon
+            NSApp.setActivationPolicy((appArguments.showDockIcon.present || appArguments.dockIcon.present) ? .regular : .accessory)
+            
+            // Set Dock Icon
+            if appArguments.dockIcon.present {
+                let path = appArguments.dockIcon.value
+                var image = NSImage()
+                switch path {
+                case _ where ["app", "prefPane", "framework"].contains(path.split(separator: ".").last):
+                    image =  getAppIcon(appPath: path)
+                default:
+                    image = getImageFromPath(fileImagePath: path, returnErrorImage: true)
+                }
+                NSApp.applicationIconImage = image
+            }
+            
+            // Set Dock Badge
+            NSApp.dockTile.badgeLabel = appArguments.dockBadge.present ? appArguments.dockBadge.value : nil
+            
+            // Hide menu items (only visible if dock icon is visible)
+            DispatchQueue.main.async {
+                NSApp.mainMenu?.items.removeAll { item in
+                    ["File", "View", "Window", "Help"].contains(item.title)
+                }
+            }
 
             // Force on top configuration - apply after window is positioned and visible
             if appArguments.forceOnTop.present {
@@ -239,6 +265,13 @@ struct dialogApp: App {
             activateDialog()
             writeLog("Activated", logLevel: .debug)
         }
+        
+        // If an audio file is passed in, play it
+        if appArguments.playSound.present {
+            AudioManager.shared.playAudio(from: appArguments.playSound.value)
+        }
+        
+        hideAllApps(appArguments.hideOtherApps.present)
     }
 
     var body: some Scene {
@@ -254,9 +287,13 @@ struct dialogApp: App {
                     } else if appArguments.inspectMode.present {
                         // Wrap InspectView to delay its initialization
                         let _ = appvars.debugMode ? print("DEBUG: Loading InspectView") : ()
-                        InspectView()
-                            .frame(width: observedData.appProperties.windowWidth,
-                                  height: observedData.appProperties.windowHeight)
+                        if appArguments.windowResizable.present {
+                            InspectView()
+                        } else {
+                            InspectView()
+                                .frame(width: observedData.appProperties.windowWidth,
+                                       height: observedData.appProperties.windowHeight)
+                        }
                     } else if appArguments.presentationMode.present {
                         let _ = appvars.debugMode ? print("DEBUG: Loading PresentationView") : ()
                         PresentationView(observedData: observedData)
@@ -272,6 +309,20 @@ struct dialogApp: App {
                     }
                     DebugOverlay(observedData: observedData)
                 }
+                .background(WindowAccessor { window in
+                    if let window {
+                        // on macOS 26 window backgrounds are pure white which sucks for contrast and readability.
+                        if #available(macOS 26, *) {
+                            window.backgroundColor =  NSColor(Color("oldWindowBackgroundColour"))
+                        }
+                        // Inspect mode presets with banners need full-size content view
+                        if appArguments.inspectMode.present {
+                            window.titlebarAppearsTransparent = true
+                            window.titleVisibility = .hidden
+                            window.styleMask.insert(.fullSizeContentView)
+                        }
+                    }
+                })
                 .onAppear {
                     // Only show the construction kit once, if needed.
                     if appArguments.constructionKit.present && !observedData.constructionKitShown {
@@ -296,7 +347,57 @@ struct dialogApp: App {
         // Hide Title Bar
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
+        .commands {
+            // Replace the default About menu item
+            CommandGroup(replacing: .appInfo) {
+                Button("About swiftDialog") {
+                    showAboutWindow()
+                }
+            }
+
+            // Hide menus we don't need
+            /*
+            CommandGroup(replacing: .newItem) { }        // File > New
+            CommandGroup(replacing: .pasteboard) { }     // Edit menu (copy/paste)
+            CommandGroup(replacing: .undoRedo) { }       // Edit menu (undo/redo)
+            CommandGroup(replacing: .windowList) { }     // Window menu
+            CommandGroup(replacing: .help) { }           // Help menu
+            CommandGroup(replacing: .textEditing) { }    // Text editing commands
+            CommandGroup(replacing: .textFormatting) { } // Text formatting
+             */
+        }
+        
+        WindowGroup("Constriction Kt", id: "ConstructionKit") {
+            ConstructionKitView(observedDialogContent: observedData)
+        }
+        .windowResizability(.contentSize)
     }
+    
+    func showAboutWindow() {
+            let aboutView = NSHostingController(rootView: AboutView())
+            let window = NSWindow(contentViewController: aboutView)
+            window.title = "About swiftDialog"
+            window.styleMask = [.titled, .closable]
+            //window.setContentSize(NSSize(width: 300, height: 200))
+            window.center()
+            window.makeKeyAndOrderFront(nil)
+        }
 
 
+}
+
+struct AboutView: View {
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 64, height: 64)
+            Text("swiftDialog")
+                .font(.title)
+            Text(getVersionString())
+                .foregroundColor(.secondary)
+        }
+        .frame(width: 300, height: 200)
+        .padding(30)
+    }
 }

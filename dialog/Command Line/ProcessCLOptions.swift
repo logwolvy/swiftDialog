@@ -48,6 +48,19 @@ func getJSON() -> JSON {
         json = processJSON(jsonFilePath: CLOptionText(optionName: appArguments.jsonFile))
     }
 
+    if CLOptionPresent(optionName: appArguments.inspectConfig) {
+        // read json in from inspect config
+        json = processJSON(jsonFilePath: CLOptionText(optionName: appArguments.inspectConfig))
+        writeLog("Inspect Mode: Config path from command line argument", logLevel: .debug)
+    }
+
+    if let envConfigPath = ProcessInfo.processInfo.environment["DIALOG_INSPECT_CONFIG"],
+       !envConfigPath.isEmpty {
+        json = processJSON(jsonFilePath: envConfigPath)
+        writeLog("Inspect Mode: Config path found in environment variable: \(envConfigPath)", logLevel: .debug)
+    }
+
+
     if CLOptionPresent(optionName: appArguments.jsonString) {
         // read json in from text string
         json = processJSONString(jsonString: CLOptionText(optionName: appArguments.jsonString))
@@ -101,7 +114,7 @@ func processCLOptions(json: JSON = getJSON()) {
 
     //this method goes through the arguments that are present and performs any processing required before use
     writeLog("Processing Options")
-    
+
     // Monitor Mode - Use InspectView for all monitor scenarios (with or without config)
     if appvars.debugMode { print("DEBUG: inspectMode.present = \(appArguments.inspectMode.present)") }
     if appArguments.inspectMode.present {
@@ -111,10 +124,10 @@ func processCLOptions(json: JSON = getJSON()) {
         writeLog("  1. Environment variable: DIALOG_INSPECT_CONFIG=/path/to/config.json", logLevel: .info)
         writeLog("  2. Standard location: /var/tmp/dialog-inspect-config.json", logLevel: .info)
         writeLog("  3. Command line: --inspect-config (may cause hang with certain SwiftUI versions)", logLevel: .info)
-        
+
         // Determine config path using same priority as InspectView
         var configPath: String?
-        
+
         // Priority 1: Check environment variable DIALOG_INSPECT_CONFIG
         if let envConfigPath = ProcessInfo.processInfo.environment["DIALOG_INSPECT_CONFIG"],
            !envConfigPath.isEmpty {
@@ -131,17 +144,17 @@ func processCLOptions(json: JSON = getJSON()) {
             configPath = appArguments.inspectConfig.value
             writeLog("Inspect Mode: Config path from command line: \(configPath!)", logLevel: .info)
         }
-        
+
         // Store the config path for InspectView to access
         if let configPath = configPath {
             appvars.inspectConfigPath = configPath
-            
+
             // Load the config to determine preset and apply appropriate window dimensions
             if FileManager.default.fileExists(atPath: configPath) {
                 do {
                     let data = try Data(contentsOf: URL(fileURLWithPath: configPath))
                     let decoder = JSONDecoder()
-                    
+
                     // Read config for sizing
                     struct MinimalInspectConfig: Codable {
                         let preset: String?
@@ -180,8 +193,13 @@ func processCLOptions(json: JSON = getJSON()) {
                     appvars.windowHeight = 600
                 }
             }
+        } else {
+            // No config file — will use built-in sample config (Preset 5 bento grid)
+            appvars.windowWidth = 800
+            appvars.windowHeight = 600
+            writeLog("Inspect Mode: No config file, using built-in sample size (1000×650)", logLevel: .info)
         }
-        
+
         // InspectView handles all its own state and configuration - no presentation mode needed
         writeLog("Inspect Mode: InspectView will handle all config loading and presentation", logLevel: .info)
     }
@@ -221,7 +239,7 @@ func processCLOptions(json: JSON = getJSON()) {
             }
         }
     }
-    
+
     // Monitor mode: Always center horizontally (left-to-right)
     if appArguments.inspectMode.present {
         appvars.windowPositionHorozontal = NSWindow.Position.Horizontal.center
@@ -285,6 +303,86 @@ func processCLOptions(json: JSON = getJSON()) {
         }
         quitDialog(exitCode: appDefaults.exitNow.code)
     }
+    if appArguments.inspectSchema.present {
+        writeLog("\(appArguments.inspectSchema.long) called", logLevel: .info)
+
+        guard let schemaURL = Bundle.main.url(forResource: "inspect-config.schema", withExtension: "json"),
+              let schemaData = try? Data(contentsOf: schemaURL),
+              let schemaString = String(data: schemaData, encoding: .utf8) else {
+            print("Error: Schema file not found in bundle")
+            quitDialog(exitCode: appDefaults.exitNow.code)
+            return
+        }
+
+        if appArguments.inspectSchema.value.isEmpty {
+            // Print to stdout
+            print(schemaString)
+        } else {
+            // Save to file
+            do {
+                try schemaString.write(toFile: appArguments.inspectSchema.value, atomically: true, encoding: .utf8)
+                print("Schema written to: \(appArguments.inspectSchema.value)")
+            } catch {
+                print("Error writing schema: \(error.localizedDescription)")
+            }
+        }
+        quitDialog(exitCode: appDefaults.exitNow.code)
+    }
+    if appArguments.schemaValidate.present {
+        writeLog("\(appArguments.schemaValidate.long) called", logLevel: .info)
+
+        let configPath = appArguments.schemaValidate.value
+        guard !configPath.isEmpty else {
+            print("❌ Error: No config file specified")
+            print("Usage: --schema-validate /path/to/config.json")
+            quitDialog(exitCode: appDefaults.exit201.code)
+            return
+        }
+
+        guard FileManager.default.fileExists(atPath: configPath) else {
+            print("❌ Error: Config file not found: \(configPath)")
+            quitDialog(exitCode: appDefaults.exit201.code)
+            return
+        }
+
+        // Load and validate the config
+        let configService = Config()
+        let result = configService.loadConfiguration(fromFile: configPath)
+
+        switch result {
+        case .success(let configResult):
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            print("  Config Validation: \(configPath)")
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            print("")
+            print("✓ JSON syntax: Valid")
+            print("✓ Preset: \(configResult.config.preset)")
+            print("✓ Items: \(configResult.config.items.count)")
+            print("")
+
+            if configResult.warnings.isEmpty {
+                print("✅ No warnings - config looks good!")
+            } else {
+                print("⚠️  Warnings (\(configResult.warnings.count)):")
+                for warning in configResult.warnings {
+                    print("  • \(warning)")
+                }
+            }
+            print("")
+            quitDialog(exitCode: configResult.warnings.isEmpty ? appDefaults.exit0.code : appDefaults.exit3.code)
+
+        case .failure(let error):
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            print("  Config Validation: \(configPath)")
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            print("")
+            print("❌ Validation failed:")
+            print("  \(error.localizedDescription)")
+            print("")
+            quitDialog(exitCode: appDefaults.exit201.code)
+        }
+        return
+    }
     if appArguments.getVersion.present {
         writeLog("\(appArguments.getVersion.long) called")
         printVersionString()
@@ -312,6 +410,8 @@ func processCLOptions(json: JSON = getJSON()) {
         writeLog("Auth key is required", logLevel: .debug)
         quitDialog(exitCode: appDefaults.exit30.code, exitMessage: appDefaults.exit30.message)
     }
+
+    appvars.authorised = appArguments.authkey.present && !dialogAuthorisationKey().isEmpty && dialogIsAuthorised
 
     // hash a key value
     if appArguments.hash.present {
@@ -366,6 +466,10 @@ func processCLOptions(json: JSON = getJSON()) {
 
     if appArguments.buttonSize.present {
         appvars.buttonSize = appDefaults.buttonSizeStates[appArguments.buttonSize.value] ?? .regular
+    }
+
+    if appArguments.buttonTextSize.present {
+        appvars.buttonTextSize = appArguments.buttonTextSize.value.floatValue()
     }
 
     if appArguments.dropdownValues.present {
@@ -425,6 +529,10 @@ func processCLOptions(json: JSON = getJSON()) {
                             dropdownRequired = true
                         case "radio":
                             dropdownStyle = "radio"
+                        case "searchable":
+                            dropdownStyle = "searchable"
+                        case "multiselect":
+                            dropdownStyle = "multiselect"
                         case "name":
                             dropdownName = itemValue
                         default: ()
@@ -486,7 +594,7 @@ func processCLOptions(json: JSON = getJSON()) {
                 if items.count > 0 {
                     fieldTitle = items[0]
                     if items.count > 1 {
-                        fieldRegexError = "\"\(fieldTitle)\" "+"no-pattern".localized
+                        fieldRegexError = "\"\(fieldTitle)\" "+"doesn't match the required format".localized
                         for index in 1...items.count-1 {
                             switch items[index].lowercased()
                                 .replacingOccurrences(of: ",", with: "")
@@ -820,6 +928,9 @@ func processCLOptions(json: JSON = getJSON()) {
             if json[appArguments.titleFont.long]["name"].exists() {
                 appvars.titleFontName = json[appArguments.titleFont.long]["name"].stringValue
             }
+            if json[appArguments.titleFont.long]["alignment"].exists() {
+                appvars.titleFontAlignment = json[appArguments.titleFont.long]["alignment"].stringValue
+            }
         } else {
             writeLog("titleFont.value : \(appArguments.titleFont.value)")
             let fontCLValues = appArguments.titleFont.value
@@ -846,6 +957,9 @@ func processCLOptions(json: JSON = getJSON()) {
                     case  "shadow":
                         appvars.titleFontShadow = item[1].boolValue
                         writeLog("titleFontShadow : \(appvars.titleFontShadow)")
+                    case  "alignment":
+                        appvars.titleFontAlignment = item[1]
+                        writeLog("titleFontAlignment : \(appvars.titleFontAlignment)")
                     default:
                         writeLog("Unknown paramater \(item[0])")
                 }
@@ -1003,4 +1117,3 @@ func processCLOptions(json: JSON = getJSON()) {
 
     writeLog("ProcessCLOptions: Completed successfully", logLevel: .info)
 }
-

@@ -7,7 +7,7 @@
 
 import Foundation
 import SwiftUI
-import MarkdownUI
+import Textual
 
 struct MessageContent: View {
 
@@ -48,11 +48,19 @@ struct MessageContent: View {
                 HStack {
                     Spacer()
                     HStack {
-                        ForEach(0..<userInputState.iconItems.count, id: \.self) {index in
-                            IconView(image: userInputState.iconItems[index].value,
+                        if userInputState.iconItems.count == 1 {
+                            IconView(image: observedData.args.iconOption.value,
+                                     overlay: observedData.args.overlayIconOption.value,
                                      alpha: observedData.iconAlpha)
-                            .frame(height: iconDisplayWidth, alignment: .top)
-
+                            .accessibilityHint(observedData.args.iconAccessabilityLabel.value)
+                            .frame(width: iconDisplayWidth, alignment: .top)
+                        } else {
+                            ForEach(0..<userInputState.iconItems.count, id: \.self) {index in
+                                IconView(image: userInputState.iconItems[index].value,
+                                         alpha: observedData.iconAlpha)
+                                .frame(height: iconDisplayWidth, alignment: .top)
+                                
+                            }
                         }
                     }
                     .border(observedData.appProperties.debugBorderColour, width: 2)
@@ -78,12 +86,11 @@ struct MessageContent: View {
                                 List {
                                     Text(observedData.args.messageOption.value)
                                         .font(.system(size: 12, design: .monospaced))
-                                        .background(GeometryReader {child -> Color in
-                                            DispatchQueue.main.async {
-                                                // update on next cycle with calculated height
-                                                self.messageHeight = child.size.height > defaultMessageHeight ? child.size.height : defaultMessageHeight
-                                            }
-                                            return Color.clear
+                                        .background(GeometryReader { child in
+                                            Color.clear
+                                                .onAppear {
+                                                    self.messageHeight = child.size.height > defaultMessageHeight ? child.size.height : defaultMessageHeight
+                                                }
                                         })
                                         .frame(maxWidth: .infinity, alignment: .leading)
                                 }
@@ -93,41 +100,47 @@ struct MessageContent: View {
                             }
                         } else {
                             ScrollView {
-                                ForEach(parseMarkdownSections(from: observedData.args.messageOption.value), id: \.id) { section in
-                                    if section.isCollapsible {
-                                        CollapsibleBlock(title: section.title ?? "Details", content: section.content)
-                                        .markdownTextStyle {
-                                            FontSize(appvars.messageFontSize-2)
-                                            ForegroundColor(messageColour)
+
+                                StructuredText(observedData.args.messageOption.value,
+                                               parser: ColoredMarkdownParser())
+                                    .frame(width: messageGeometry.size.width, alignment: observedData.appProperties.messagePosition)
+                                    .multilineTextAlignment(observedData.appProperties.messageAlignment)
+                                    .lineSpacing(2)
+                                    .fixedSize()
+                                    .background(GeometryReader { child -> Color in
+                                        DispatchQueue.main.async {
+                                            self.messageHeight = child.size.height > defaultMessageHeight ? child.size.height : defaultMessageHeight
                                         }
-                                        .padding(.vertical, 2)
-                                        .focusable(false)
-                                        .task {
-                                            messageHeight = .infinity
-                                        }
-                                    } else {
-                                        Markdown(section.content)
-                                            .frame(width: messageGeometry.size.width, alignment: observedData.appProperties.messagePosition)
-                                            .multilineTextAlignment(observedData.appProperties.messageAlignment)
-                                            .lineSpacing(2)
-                                            .fixedSize()
-                                            .background(GeometryReader {child -> Color in
-                                                DispatchQueue.main.async {
-                                                    // update on next cycle with calculated height
-                                                    self.messageHeight = child.size.height > defaultMessageHeight ? child.size.height : defaultMessageHeight
-                                                }
-                                                return Color.clear
-                                            })
-                                            .markdownTheme(.sdMarkdown)
-                                            .markdownTextStyle {
-                                                FontSize(appvars.messageFontSize)
-                                                ForegroundColor(messageColour)
-                                            }
-                                            .accessibilityHint(observedData.args.messageOption.value)
-                                            .focusable(false)
-                                            .border(observedData.appProperties.debugBorderColour, width: 2)
-                                    }
-                                }
+                                        return Color.clear
+                                    })
+                                    // Instead of .textual.structuredTextStyle(.gitHub), set each piece individually:
+                                    .textual.inlineStyle(
+                                        InlineStyle()
+                                            .code(.monospaced, .fontScale(0.85))  // same as .gitHub but NO .backgroundColor
+                                            .strong(.fontWeight(.semibold))
+                                            //.link(.foregroundColor(.gitHubLink))
+                                    )
+                                    .textual.headingStyle(.gitHub)
+                                    .textual.paragraphStyle(.gitHub)
+                                    .textual.blockQuoteStyle(.gitHub)
+                                    .textual.codeBlockStyle(.gitHub)
+                                    .textual.listItemStyle(.default)
+                                    .textual.unorderedListMarker(.hierarchical(.disc, .circle, .square))
+                                    .textual.orderedListMarker(.decimal)
+                                    .textual.tableStyle(.gitHub)
+                                    .textual.tableCellStyle(.gitHub)
+                                    .textual.thematicBreakStyle(.gitHub)
+                                    .textual.textSelection(.enabled)
+                                    .font(
+                                        appvars.messageFontName.isEmpty ?
+                                        Font.system(size: appvars.messageFontSize, weight: appvars.messageFontWeight, design: .default) :
+                                        .custom(appvars.messageFontName, size: appvars.messageFontSize)
+                                    )
+                                    .fontWeight(appvars.messageFontWeight)
+                                    .foregroundColor(messageColour)
+                                    .accessibilityHint(observedData.args.messageOption.value)
+                                    .focusable(false)
+                                    .border(observedData.appProperties.debugBorderColour, width: 2)
                             }
                             .padding(.top, appDefaults.topPadding)
                         }
@@ -139,45 +152,47 @@ struct MessageContent: View {
             } else {
                 Spacer()
             }
+            
+            // Show Audio Controls
+            if observedData.args.showSoundControls.present && observedData.args.playSound.present {
+                AudioControl()
+            }
 
             Group {
                 ForEach(Array(observedData.appProperties.viewOrder.indices), id: \.self) { index in
-                    if observedData.appProperties.viewOrder.firstIndex(of: ViewType.textfile.rawValue) == index {
+                    switch index {
+                    case observedData.appProperties.viewOrder.firstIndex(of: ViewType.textfile.rawValue):
                         TextFileView(logFilePath: observedData.args.logFileToTail.value, loadHistory: observedData.args.logFileHistory.present, historyLineLimit: logHistoryLimit)
                             .padding(.bottom, appDefaults.contentPadding)
-                    }
-                    if observedData.appProperties.viewOrder.firstIndex(of: ViewType.webcontent.rawValue) == index {
+                    case observedData.appProperties.viewOrder.firstIndex(of: ViewType.webcontent.rawValue):
                         WebContentView(observedDialogContent: observedData, url: observedData.args.webcontent.value)
                             .border(observedData.appProperties.debugBorderColour, width: 2)
                             .padding(.bottom, appDefaults.contentPadding)
-                    }
-                    if observedData.appProperties.viewOrder.firstIndex(of: ViewType.listitem.rawValue) == index {
+                    case observedData.appProperties.viewOrder.firstIndex(of: ViewType.listitem.rawValue):
                         ListView(observedDialogContent: observedData)
                             .border(observedData.appProperties.debugBorderColour, width: 2)
                             .padding(.bottom, appDefaults.contentPadding)
-                    }
-                    if observedData.appProperties.viewOrder.firstIndex(of: ViewType.checkbox.rawValue) == index {
+                    case observedData.appProperties.viewOrder.firstIndex(of: ViewType.checkbox.rawValue):
                         CheckboxView(observedDialogContent: observedData)
                             .border(observedData.appProperties.debugBorderColour, width: 2)
                             .frame(maxWidth: dataEntryMaxWidth)
-                    }
-                    if observedData.appProperties.viewOrder.firstIndex(of: ViewType.textfield.rawValue) == index {
+                    case observedData.appProperties.viewOrder.firstIndex(of: ViewType.textfield.rawValue):
                         TextEntryView(observedDialogContent: observedData, textfieldContent: userInputState.textFields)
                             .padding(.bottom, appDefaults.contentPadding)
                             .border(observedData.appProperties.debugBorderColour, width: 2)
                             .frame(maxWidth: dataEntryMaxWidth)
-                    }
-                    if observedData.appProperties.viewOrder.firstIndex(of: ViewType.radiobutton.rawValue) == index {
-                        RadioView(observedDialogContent: observedData)
-                            .padding(.bottom, appDefaults.contentPadding)
-                            .border(observedData.appProperties.debugBorderColour, width: 2)
-                            .frame(maxWidth: dataEntryMaxWidth)
-                    }
-                    if observedData.appProperties.viewOrder.firstIndex(of: ViewType.dropdown.rawValue) == index {
+                    case observedData.appProperties.viewOrder.firstIndex(of: ViewType.dropdown.rawValue):
                         DropdownView(observedDialogContent: observedData)
                             .padding(.bottom, appDefaults.contentPadding)
                             .border(observedData.appProperties.debugBorderColour, width: 2)
                             .frame(maxWidth: dataEntryMaxWidth, alignment: .leading)
+                    case observedData.appProperties.viewOrder.firstIndex(of: ViewType.radiobutton.rawValue):
+                        RadioView(observedDialogContent: observedData)
+                            .padding(.bottom, appDefaults.contentPadding)
+                            .border(observedData.appProperties.debugBorderColour, width: 2)
+                            .frame(maxWidth: dataEntryMaxWidth)
+                    default:
+                            EmptyView()
                     }
                 }
             }
@@ -189,7 +204,7 @@ struct MessageContent: View {
             if observedData.appProperties.userInputRequired {
                 HStack {
                     Spacer()
-                    Text("required-note")
+                    Text("* Required Fields")
                         .font(.system(size: 10)
                                 .weight(.light))
                 }
@@ -244,7 +259,7 @@ struct CollapsibleBlock: View {
             .buttonStyle(PlainButtonStyle())
 
             if isExpanded {
-                Markdown(content)
+                StructuredText(markdown: content)
                     .padding(.leading, 16)
             }
         }

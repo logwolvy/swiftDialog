@@ -21,6 +21,9 @@ class ImageResolver {
         "/Users/Shared/dialog/icons/"
     ]
 
+    /// Set once from config's iconBasePath — used as fallback when callers don't pass basePath
+    var configBasePath: String?
+
     private var imageCache: [String: String] = [:]
     private let cacheQueue = DispatchQueue(label: "dialog.inspect.imagecache", attributes: .concurrent)
 
@@ -47,30 +50,38 @@ class ImageResolver {
             return fallbackIcon
         }
 
+        writeLog("ImageResolver: Resolving path='\(path)' with basePath='\(basePath ?? "nil")'", logLevel: .info)
+
         // Check cache first
         if let cached = getCachedPath(for: path) {
+            writeLog("ImageResolver: Using cached path: \(cached)", logLevel: .debug)
             return cached
         }
 
         // Try to resolve the path
-        var resolvedPath: String? = nil
+        var resolvedPath: String?
 
         // 1. If it's an absolute path and exists, use it
         if path.hasPrefix("/") {
+            writeLog("ImageResolver: Checking absolute path: \(path)", logLevel: .debug)
             if FileManager.default.fileExists(atPath: path) {
                 resolvedPath = path
-                writeLog("ImageResolver: Found absolute path: \(path)", logLevel: .debug)
+                writeLog("ImageResolver: ✓ Found absolute path: \(path)", logLevel: .info)
             } else {
-                writeLog("ImageResolver: Absolute path not found: \(path)", logLevel: .debug)
+                writeLog("ImageResolver: ✗ Absolute path not found: \(path)", logLevel: .info)
             }
         }
 
         // 2. If we have a basePath and path is relative, try combining them
-        if resolvedPath == nil, let basePath = basePath, !path.hasPrefix("/") {
+        let effectiveBasePath = basePath ?? configBasePath
+        if resolvedPath == nil, let basePath = effectiveBasePath, !path.hasPrefix("/") {
             let combined = (basePath as NSString).appendingPathComponent(path)
+            writeLog("ImageResolver: Checking combined path: \(combined)", logLevel: .debug)
             if FileManager.default.fileExists(atPath: combined) {
                 resolvedPath = combined
-                writeLog("ImageResolver: Found with basePath: \(combined)", logLevel: .debug)
+                writeLog("ImageResolver: ✓ Found with basePath: \(combined)", logLevel: .info)
+            } else {
+                writeLog("ImageResolver: ✗ Combined path not found: \(combined)", logLevel: .info)
             }
         }
 
@@ -93,7 +104,9 @@ class ImageResolver {
         }
 
         // Return resolved path or fallback
-        return resolvedPath ?? fallbackIcon
+        let finalPath = resolvedPath ?? fallbackIcon
+        writeLog("ImageResolver: Final resolved path for '\(path)': '\(finalPath ?? "nil")'", logLevel: .info)
+        return finalPath
     }
 
     func resolveAppIcon(for appId: String, paths: [String]? = nil) -> String? {

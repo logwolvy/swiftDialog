@@ -34,20 +34,20 @@ struct InstallationInfoPopoverView: View {
                     // Serial Number
                     Text(getSystemInfo("serialnumber"))
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .textSelection(.enabled)
                 } else {
                     // Generic system info when details are hidden
                     Text("System Information Hidden")
                         .font(.title3)
                         .fontWeight(.medium)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
 
                 // OS Name + Version with Build Number
                 Text("\(getOSDisplayName()) (\(getBuildNumber()))")
                     .font(.subheadline)
-                    .foregroundColor(.primary)
+                    .foregroundStyle(.primary)
             }
             .padding(.bottom, 8)
 
@@ -65,16 +65,16 @@ struct InstallationInfoPopoverView: View {
                     HStack(spacing: 4) {
                         Text(getSystemInfo("username"))
                         Text("(UID: \(getUserID()))")
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 } else {
                     // Generic user info when details are hidden
                     Text("User Details Hidden")
                         .font(.headline)
                         .fontWeight(.medium)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding(.bottom, 8)
@@ -86,15 +86,15 @@ struct InstallationInfoPopoverView: View {
                 Text("Progress Overview")
                     .font(.subheadline)
                     .fontWeight(.medium)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 VStack(spacing: 6) {
                     EnhancedInfoRow(label: "Total Items", value: "\(inspectState.items.count)")
                     EnhancedInfoRow(label: "Completed", value: "\(inspectState.completedItems.count)",
-                                  valueColor: inspectState.completedItems.count > 0 ? .green : .primary)
+                                  valueColor: !inspectState.completedItems.isEmpty ? .green : .primary)
                     EnhancedInfoRow(label: "Installing", value: "\(inspectState.downloadingItems.count)",
-                                  valueColor: inspectState.downloadingItems.count > 0 ? .blue : .primary)
+                                  valueColor: !inspectState.downloadingItems.isEmpty ? .blue : .primary)
                     EnhancedInfoRow(label: "Pending", value: "\(inspectState.items.count - inspectState.completedItems.count - inspectState.downloadingItems.count)",
                                   valueColor: .secondary)
 
@@ -111,7 +111,7 @@ struct InstallationInfoPopoverView: View {
                     Text("Currently Installing")
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(.blue)
+                        .foregroundStyle(.blue)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     ForEach(inspectState.items.filter { inspectState.downloadingItems.contains($0.id) }, id: \.id) { item in
@@ -183,13 +183,13 @@ struct EnhancedInfoRow: View {
         HStack {
             Text(label + ":")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .frame(width: 90, alignment: .leading)
             Spacer()
             Text(value)
                 .font(.caption)
                 .fontWeight(.semibold)
-                .foregroundColor(valueColor)
+                .foregroundStyle(valueColor)
                 .textSelection(.enabled)
         }
         .padding(.vertical, 2)

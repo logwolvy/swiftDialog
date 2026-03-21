@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "2600"
+   LastUpgradeVersion = "2610"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -28,6 +28,16 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "4154C2EB25F76BDC00A3D373"
+               BuildableName = "dialogTests.xctest"
+               BlueprintName = "dialogTests"
+               ReferencedContainer = "container:dialog.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
          <TestableReference
             skipped = "NO">
             <BuildableReference
@@ -64,6 +74,10 @@
          <CommandLineArgument
             argument = "--position bottomright"
             isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--debug"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--displaylog /var/log/jamf.log"
@@ -111,11 +125,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--icon &quot;sf=applelogo,colour=blue&quot;"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--style centered"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--bannerimage /Users/rea094/Documents/csiro\ resources/22-00140_RecruitmentProjectDorothy_MyCSIROBanner.png"
@@ -127,14 +141,14 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--infobox &quot;This is some text for the info box&quot;"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "--builder"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--title &quot;xcode test window&quot;"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--builder"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
