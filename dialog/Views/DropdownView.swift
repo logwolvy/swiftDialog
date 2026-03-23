@@ -81,6 +81,7 @@ struct DropdownView: View {
                                             value: observedData.showSheet
                                         )
                                     )
+                                    
                             } else {
                                 Picker("", selection: $selectedOption[index]) {
                                     if userInputState.dropdownItems[index].defaultValue.isEmpty {
@@ -295,55 +296,61 @@ struct SearchablePicker: View {
     
     private var multiSelectBody: some View {
         HStack(spacing: 0) {
-            FlowLayout(spacing: 4) {
-                // Display selected tags
-                ForEach(Array(selectedItems).sorted(), id: \.self) { item in
-                    TagView(text: item) {
-                        removeSelection(item)
-                    }
-                }
-                
-                // Search field with backspace handling
-                BackspaceDetectingTextField(
-                    placeholder: selectedItems.isEmpty ? title : "",
-                    text: $searchText,
-                    onBackspaceWhenEmpty: {
-                        if let last = selectedItems.sorted().last {
-                            removeSelection(last)
+            ScrollView {
+                FlowLayout(spacing: 4) {
+                    // Display selected tags
+                    ForEach(Array(selectedItems).sorted(), id: \.self) { item in
+                        TagView(text: item) {
+                            removeSelection(item)
                         }
                     }
-                )
-                .focused($isFocused)
-                .frame(minWidth: 60)
-                .onChange(of: searchText) {
-                    if didAppear {
-                        showPopup = true
-                        selectedIndex = selectableIndices.first
+                    
+                    // Search field with backspace handling
+                    BackspaceDetectingTextField(
+                        placeholder: selectedItems.isEmpty ? title : "",
+                        text: $searchText,
+                        onBackspaceWhenEmpty: {
+                            if let last = selectedItems.sorted().last {
+                                removeSelection(last)
+                            }
+                        }
+                    )
+                    .focused($isFocused)
+                    .frame(minWidth: 60)
+                    .onChange(of: searchText) {
+                        if didAppear {
+                            showPopup = true
+                            selectedIndex = selectableIndices.first
+                        }
                     }
-                }
-                .onChange(of: isFocused) { _, focused in
-                    if !focused {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                            if !isFocused {
-                                showPopup = false
-                                searchText = ""
+                    .onChange(of: isFocused) { _, focused in
+                        if !focused {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                if !isFocused {
+                                    showPopup = false
+                                    searchText = ""
+                                }
                             }
                         }
                     }
-                }
-                .onAppear {
-                    showPopup = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        didAppear = true
+                    .onAppear {
+                        showPopup = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            didAppear = true
+                        }
+                    }
+                    .onSubmit {
+                        if !searchText.isEmpty {
+                            selectHighlightedOrFirst()
+                        }
                     }
                 }
-                .onSubmit {
-                    if !searchText.isEmpty {
-                        selectHighlightedOrFirst()
-                    }
-                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 2)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .scrollIndicators(.visible)
+            .frame(maxHeight: 80)
+            .fixedSize(horizontal: false, vertical: true)
             
             // Chevron button
             Button {
