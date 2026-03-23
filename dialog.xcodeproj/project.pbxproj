@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0940615EFBFC244436D747B3 /* ProceduralGradientView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8E519DD87E7826F5EBAC1A /* ProceduralGradientView.swift */; };
 		41005AA927CEF81A0065F323 /* SwiftyJSON in Frameworks */ = {isa = PBXBuildFile; productRef = 41005AA827CEF81A0065F323 /* SwiftyJSON */; };
 		41005AAA27CEF8250065F323 /* AVKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4114E1E827153FEE00388274 /* AVKit.framework */; };
 		41110A2825F9E79E008171D2 /* License.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41110A2725F9E79E008171D2 /* License.swift */; };
@@ -93,12 +94,12 @@
 		BA2727D02F22F1350027C4BD /* IconCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2727C82F22F1350027C4BD /* IconCache.swift */; };
 		BA2727D12F22F1350027C4BD /* MediaComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2727C92F22F1350027C4BD /* MediaComponents.swift */; };
 		BA2727D22F22F1350027C4BD /* WallpaperPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2727CB2F22F1350027C4BD /* WallpaperPicker.swift */; };
-		0940615EFBFC244436D747B3 /* ProceduralGradientView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E8E519DD87E7826F5EBAC1A /* ProceduralGradientView.swift */; };
 		BA2728012F22F1350027C4BD /* BentoGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2728002F22F1350027C4BD /* BentoGridView.swift */; };
 		BA2728102F22F1350027C4BD /* DeploymentStepViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2728112F22F1350027C4BD /* DeploymentStepViews.swift */; };
 		BA2812002EBA161C00384582 /* InspectPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2811FF2EBA161C00384582 /* InspectPersistence.swift */; };
 		BA2812082EBA183A00384582 /* Preset6.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA2812022EBA183A00384582 /* Preset6.swift */; };
 		BA3L0C122F9B3A00001367A5 /* LocalizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA3L0C112F9B3A00001367A5 /* LocalizationService.swift */; };
+		BA4DD5022F242A0000ABCDEF /* DateDisplayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA4DD5012F242A0000ABCDEF /* DateDisplayService.swift */; };
 		BA56BA942EC5F41000055C7F /* InspectDynamicState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA56BA912EC5F41000055C7F /* InspectDynamicState.swift */; };
 		BA56BA952EC5F41000055C7F /* PlistAggregator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA56BA932EC5F41000055C7F /* PlistAggregator.swift */; };
 		BA56BA962EC5F41000055C7F /* InspectStateMachines.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA56BA922EC5F41000055C7F /* InspectStateMachines.swift */; };
@@ -113,6 +114,7 @@
 		BA7CA57E2F231310005A922A /* StatusContentBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA7CA5792F231310005A922A /* StatusContentBlocks.swift */; };
 		BA7CA57F2F231310005A922A /* MediaContentBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA7CA5782F231310005A922A /* MediaContentBlocks.swift */; };
 		BA7CA5812F231618005A922A /* IntroStepMonitorService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA7CA5802F231618005A922A /* IntroStepMonitorService.swift */; };
+		BA7TS0012F242B0000ABCDEF /* ThumbnailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA7TS0002F242B0000ABCDEF /* ThumbnailService.swift */; };
 		BAB7C3CB2F39187B0033C0DC /* InspectBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAB7C3CA2F39187B0033C0DC /* InspectBannerView.swift */; };
 		BAC04B282E2FB401006B0F89 /* AppInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAC04B262E2FB401006B0F89 /* AppInspector.swift */; };
 		BAC04B292E2FB401006B0F89 /* InspectConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAC04B272E2FB401006B0F89 /* InspectConstants.swift */; };
@@ -120,14 +122,12 @@
 		BAE4DDB3152893222E865858 /* DeferralMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAE50F8E8766AAD7B36AC667 /* DeferralMenuView.swift */; };
 		BAEFDFE12E83FB310017CFC2 /* ErrorHandling.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFD62E83FB310017CFC2 /* ErrorHandling.swift */; };
 		BAEFDFE22E83FB310017CFC2 /* InstallationInfoPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFDF2E83FB310017CFC2 /* InstallationInfoPopoverView.swift */; };
-		BA7TS0012F242B0000ABCDEF /* ThumbnailService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA7TS0002F242B0000ABCDEF /* ThumbnailService.swift */; };
 		BAEFDFE52E83FB310017CFC2 /* DialogCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFDB2E83FB310017CFC2 /* DialogCache.swift */; };
 		BAEFDFE72E83FB310017CFC2 /* Preset2.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFCD2E83FB310017CFC2 /* Preset2.swift */; };
 		BAEFDFE82E83FB310017CFC2 /* InspectState.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFC82E83FB310017CFC2 /* InspectState.swift */; };
 		BAEFDFE92E83FB310017CFC2 /* InspectSizes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFC72E83FB310017CFC2 /* InspectSizes.swift */; };
 		BAEFDFEA2E83FB310017CFC2 /* InspectConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFC52E83FB310017CFC2 /* InspectConfig.swift */; };
 		BAEFDFEB2E83FB310017CFC2 /* Validation.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFD92E83FB310017CFC2 /* Validation.swift */; };
-		BA4DD5022F242A0000ABCDEF /* DateDisplayService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA4DD5012F242A0000ABCDEF /* DateDisplayService.swift */; };
 		BAEFDFEE2E83FB310017CFC2 /* InspectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFC92E83FB310017CFC2 /* InspectView.swift */; };
 		BAEFDFF02E83FB310017CFC2 /* InspectCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFDE2E83FB310017CFC2 /* InspectCoordinator.swift */; };
 		BAEFDFF12E83FB310017CFC2 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAEFDFD52E83FB310017CFC2 /* Config.swift */; };
@@ -307,6 +307,7 @@
 		41FCF1F52EA9CFB000E3C47D /* CKMessageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CKMessageView.swift; sourceTree = "<group>"; };
 		41FD45FD26C40366006976FC /* TimerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TimerView.swift; sourceTree = "<group>"; };
 		41FD45FF26C8DC5D006976FC /* ImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageView.swift; sourceTree = "<group>"; };
+		6E8E519DD87E7826F5EBAC1A /* ProceduralGradientView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProceduralGradientView.swift; sourceTree = "<group>"; };
 		94072E482AFE931300B2A5C3 /* Font+Additions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Font+Additions.swift"; sourceTree = "<group>"; };
 		A4F660819C6A4FBC8F1D8BAB /* DebouncedUpdater.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebouncedUpdater.swift; sourceTree = "<group>"; };
 		AA00000000000001AABBCC00 /* LogMonitorServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogMonitorServiceTests.swift; sourceTree = "<group>"; };
@@ -321,12 +322,12 @@
 		BA2727C92F22F1350027C4BD /* MediaComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaComponents.swift; sourceTree = "<group>"; };
 		BA2727CA2F22F1350027C4BD /* StatusComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusComponents.swift; sourceTree = "<group>"; };
 		BA2727CB2F22F1350027C4BD /* WallpaperPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WallpaperPicker.swift; sourceTree = "<group>"; };
-		6E8E519DD87E7826F5EBAC1A /* ProceduralGradientView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProceduralGradientView.swift; sourceTree = "<group>"; };
 		BA2728002F22F1350027C4BD /* BentoGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BentoGridView.swift; sourceTree = "<group>"; };
 		BA2728112F22F1350027C4BD /* DeploymentStepViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeploymentStepViews.swift; sourceTree = "<group>"; };
 		BA2811FF2EBA161C00384582 /* InspectPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectPersistence.swift; sourceTree = "<group>"; };
 		BA2812022EBA183A00384582 /* Preset6.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preset6.swift; sourceTree = "<group>"; };
 		BA3L0C112F9B3A00001367A5 /* LocalizationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationService.swift; sourceTree = "<group>"; };
+		BA4DD5012F242A0000ABCDEF /* DateDisplayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateDisplayService.swift; sourceTree = "<group>"; };
 		BA56BA912EC5F41000055C7F /* InspectDynamicState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectDynamicState.swift; sourceTree = "<group>"; };
 		BA56BA922EC5F41000055C7F /* InspectStateMachines.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectStateMachines.swift; sourceTree = "<group>"; };
 		BA56BA932EC5F41000055C7F /* PlistAggregator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlistAggregator.swift; sourceTree = "<group>"; };
@@ -341,6 +342,7 @@
 		BA7CA5792F231310005A922A /* StatusContentBlocks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusContentBlocks.swift; sourceTree = "<group>"; };
 		BA7CA57A2F231310005A922A /* TableContentBlocks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableContentBlocks.swift; sourceTree = "<group>"; };
 		BA7CA5802F231618005A922A /* IntroStepMonitorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntroStepMonitorService.swift; sourceTree = "<group>"; };
+		BA7TS0002F242B0000ABCDEF /* ThumbnailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailService.swift; sourceTree = "<group>"; };
 		BAB7C3CA2F39187B0033C0DC /* InspectBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectBannerView.swift; sourceTree = "<group>"; };
 		BAC04B262E2FB401006B0F89 /* AppInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppInspector.swift; sourceTree = "<group>"; };
 		BAC04B272E2FB401006B0F89 /* InspectConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectConstants.swift; sourceTree = "<group>"; };
@@ -359,13 +361,11 @@
 		BAEFDFD72E83FB310017CFC2 /* Monitoring.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Monitoring.swift; sourceTree = "<group>"; };
 		BAEFDFD82E83FB310017CFC2 /* Progress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Progress.swift; sourceTree = "<group>"; };
 		BAEFDFD92E83FB310017CFC2 /* Validation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Validation.swift; sourceTree = "<group>"; };
-		BA4DD5012F242A0000ABCDEF /* DateDisplayService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateDisplayService.swift; sourceTree = "<group>"; };
 		BAEFDFDB2E83FB310017CFC2 /* DialogCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialogCache.swift; sourceTree = "<group>"; };
 		BAEFDFDC2E83FB310017CFC2 /* FileMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileMonitor.swift; sourceTree = "<group>"; };
 		BAEFDFDD2E83FB310017CFC2 /* ImageResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResolver.swift; sourceTree = "<group>"; };
 		BAEFDFDE2E83FB310017CFC2 /* InspectCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectCoordinator.swift; sourceTree = "<group>"; };
 		BAEFDFDF2E83FB310017CFC2 /* InstallationInfoPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstallationInfoPopoverView.swift; sourceTree = "<group>"; };
-		BA7TS0002F242B0000ABCDEF /* ThumbnailService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThumbnailService.swift; sourceTree = "<group>"; };
 		CA10102F3F10100000001A /* Preset4.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preset4.swift; sourceTree = "<group>"; };
 		CA10102F3F10100000002B /* SidebarNavigationModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarNavigationModule.swift; sourceTree = "<group>"; };
 		CA22BB002F390600001367A5 /* PresetCommonHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetCommonHelpers.swift; sourceTree = "<group>"; };
@@ -1424,7 +1424,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"dialog/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = D6G4X4D7C9;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = PWA5E9TQ59;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = dialog/Info.plist;
@@ -1456,7 +1456,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"dialog/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = D6G4X4D7C9;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = PWA5E9TQ59;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = dialog/Info.plist;
@@ -1565,7 +1565,7 @@
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = D6G4X4D7C9;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = PWA5E9TQ59;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -1591,7 +1591,7 @@
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = D6G4X4D7C9;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = PWA5E9TQ59;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -1616,7 +1616,7 @@
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = D6G4X4D7C9;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = PWA5E9TQ59;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -1641,7 +1641,7 @@
 				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				CODE_SIGN_STYLE = Manual;
 				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = D6G4X4D7C9;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = PWA5E9TQ59;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
