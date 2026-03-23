@@ -32,6 +32,7 @@ func getVersionString() -> String {
 
 func reorderViewArray(orderList: String, viewOrderArray: [String]) -> [String]? {
     let orderItems = orderList.components(separatedBy: ",")
+        .map { $0.trimmingCharacters(in: .whitespaces) }
     var tempViewArray = viewOrderArray
     var reorderedArray: [String] = []
 
